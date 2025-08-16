@@ -1,4 +1,4 @@
-# 🚀 Irshad Smart Job Recommendation & Salary Prediction System
+# 🚀 Irshad Smart Job Recommendation 
 
 ## ✨ Overview
 

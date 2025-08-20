@@ -5,6 +5,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './user/user.module';
 import { UserEntity } from './user/entities/user.entity';
+import { CompanyManagementModule } from './company-management/company-management.module';
+import { CompanyEntity } from './company-management/entities/company-management.entity';
 
 @Module({
   imports: [
@@ -19,11 +21,12 @@ import { UserEntity } from './user/entities/user.entity';
         username: configService.get<string>('DB_USER'),
         password: configService.get<string>('DB_PASSWORD'), 
         database: configService.get<string>('DB_NAME'),
-        entities: [UserEntity],
+        entities: [UserEntity,CompanyEntity],
         synchronize: true,
       }),
     }),
     AuthModule,
+    CompanyManagementModule,
   ],
   controllers: [AppController],
   providers: [AppService],

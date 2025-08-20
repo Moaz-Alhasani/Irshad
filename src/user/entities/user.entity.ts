@@ -1,7 +1,9 @@
+import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { 
   Column, 
   CreateDateColumn, 
   Entity, 
+  OneToMany, 
   PrimaryGeneratedColumn 
 } from 'typeorm';
 
@@ -34,6 +36,11 @@ export class UserEntity {
     default: UserRole.JOB_SEEKER,
   })
   role: UserRole;
+
+
+  @OneToMany(() => CompanyEntity, company => company.user)
+  companies: CompanyEntity[];
+
 
   @Column({  type: 'boolean', default: true })
   isActive: boolean;

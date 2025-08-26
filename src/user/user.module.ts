@@ -8,12 +8,13 @@ import { AuthController } from './user.controller';
 import { AuthService } from './user.service';
 import { jwtStrategy } from './strategies/jwt.strategy';
 import { CompanyManagementModule } from 'src/company-management/company-management.module';
+import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 
 @Module({
-  imports:[TypeOrmModule.forFeature([UserEntity]),
+  imports:[TypeOrmModule.forFeature([UserEntity,CompanyEntity]),
   PassportModule,
   JwtModule.register({}),
-  CompanyManagementModule  
+  CompanyManagementModule 
 ],
   exports:[AuthModule,RolesGuard],
   controllers: [AuthController],

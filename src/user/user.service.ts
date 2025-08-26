@@ -22,8 +22,7 @@ import { retry } from 'rxjs';
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(UserEntity)
-    private userRepository: Repository<UserEntity>,
+    @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
     private jwtService: JwtService,
     private ComapnyService:CompanyManagementService,
     @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>

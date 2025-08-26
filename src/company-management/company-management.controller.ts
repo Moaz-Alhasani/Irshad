@@ -6,19 +6,24 @@ import { JwtAuthGuard } from 'src/user/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/user/decorators/current_user.decorators';
 import { Roles } from 'src/user/decorators/roles.decorators';
 import { UserRole } from 'src/user/entities/user.entity';
+import { RolesGuard } from 'src/user/guards/roles-guard';
 
 @Controller('company-management')
 export class CompanyManagementController {
   constructor(private readonly companyManagementService: CompanyManagementService) {}
 
-  @Roles(UserRole.JOB_SEEKER)
-  @UseGuards(JwtAuthGuard)
-  @Post()
+  @Roles(UserRole.EMPLOYER)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  @Post('add-company')
   async createCompany(
     @Body() createCompanyDto: CreateCompanyManagementDto,
     @CurrentUser() user: any,
   ) {
-    return this.companyManagementService.createCompany(createCompanyDto, user.id);
+    const company = await this.companyManagementService.createCompany(createCompanyDto, user.id);
+      return {
+        message: 'Company created successfully. Pending admin approval.',
+        company
+      }
   }
 
   

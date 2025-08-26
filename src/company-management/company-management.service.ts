@@ -9,7 +9,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 @Injectable()
 export class CompanyManagementService {
   
-   constructor(
+    constructor(
     @InjectRepository(CompanyEntity)
     private readonly companyRepository: Repository<CompanyEntity>,
 
@@ -27,6 +27,7 @@ export class CompanyManagementService {
     const company = this.companyRepository.create({
       ...createCompanyDto,
       user,
+      isVerified:false
     });
 
     return await this.companyRepository.save(company);

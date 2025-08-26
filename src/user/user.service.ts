@@ -13,6 +13,9 @@ import { UserEntity, UserRole } from './entities/user.entity';
 import { RegisterDto } from './dto/register-user.dto';
 import { LoginDto } from './dto/login-user.dto';
 import { UpdateUserInfo } from './dto/update-user.dto';
+import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
+import { CompanyManagementService } from 'src/company-management/company-management.service';
+import { retry } from 'rxjs';
 
 
 
@@ -22,6 +25,8 @@ export class AuthService {
     @InjectRepository(UserEntity)
     private userRepository: Repository<UserEntity>,
     private jwtService: JwtService,
+    private ComapnyService:CompanyManagementService,
+    @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>
   ) {}
 
   async register(registerDto: RegisterDto) {
@@ -148,6 +153,23 @@ export class AuthService {
       throw new NotFoundException('User not found');
     }
     return { message: 'User deleted successfully' };
+  }
+
+  async AdminAcceptTheCompany(compid:number){
+    const company=await this.companyRepository.findOne({where:{id:compid}})
+    if(!company){
+      throw new NotFoundException(`company with ${compid} id is not found`)
+    }
+    company.isVerified=true
+    return this.companyRepository.save(company)
+  }
+  async AdminNonAcceptTheCompany(compid:number){
+    const company=await this.companyRepository.findOne({where:{id:compid}})
+    if(!company){
+      throw new NotFoundException(`company with ${compid} id is not found`)
+    }
+    await this.companyRepository.remove(company);
+    return `the company with ${compid} has been refused`
   }
 
 

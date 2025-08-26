@@ -7,11 +7,14 @@ import { UserEntity } from './entities/user.entity';
 import { AuthController } from './user.controller';
 import { AuthService } from './user.service';
 import { jwtStrategy } from './strategies/jwt.strategy';
+import { CompanyManagementModule } from 'src/company-management/company-management.module';
 
 @Module({
   imports:[TypeOrmModule.forFeature([UserEntity]),
   PassportModule,
-  JwtModule.register({})],
+  JwtModule.register({}),
+  CompanyManagementModule  
+],
   exports:[AuthModule,RolesGuard],
   controllers: [AuthController],
   providers: [AuthService,jwtStrategy,RolesGuard],

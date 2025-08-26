@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
 
 import { Roles } from './decorators/roles.decorators';
 import { UserRole } from './entities/user.entity';
@@ -9,6 +9,7 @@ import { AuthService } from './user.service';
 import { RegisterDto } from './dto/register-user.dto';
 import { LoginDto } from './dto/login-user.dto';
 import { UpdateUserInfo } from './dto/update-user.dto';
+import { jwtStrategy } from './strategies/jwt.strategy';
 
 
 @Controller('auth')
@@ -62,4 +63,22 @@ export class AuthController {
   deleteUser(@Param('id') id: number) {
     return this.authservice.deleteUser(id);
   }
+
+  @Post('accept/:id')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  acceptTheCompany(@Param('id',ParseIntPipe)compid:number){
+
+    return this.authservice.AdminAcceptTheCompany(compid)
+  }
+
+  @Post('refuse/:id')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  NonacceptTheCompany(@Param('id',ParseIntPipe)compid:number){
+
+    return this.authservice.AdminNonAcceptTheCompany(compid)
+  }
+  
+
 }

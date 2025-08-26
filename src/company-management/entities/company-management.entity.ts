@@ -6,8 +6,10 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { UserEntity } from '../../user/entities/user.entity'; // تأكد من وجود هذا الملف
+import { JobEntity } from 'src/jobs/entities/job.entity';
 
 @Entity('companies')
 export class CompanyEntity {
@@ -17,6 +19,9 @@ export class CompanyEntity {
   @ManyToOne(() => UserEntity, user => user.companies, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'user_id' })
   user: UserEntity;
+
+  @OneToMany(()=>JobEntity, job => job.company)
+  jobs: JobEntity[];
 
   @Column({ name: 'company_name', type: 'varchar', length: 200 })
   companyName: string;

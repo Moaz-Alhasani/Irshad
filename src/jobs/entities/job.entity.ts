@@ -38,6 +38,9 @@ export class JobEntity {
   @Column({ type: 'varchar', length: 50, nullable: true })
   employmentType: string;
 
+  @Column({ nullable: true })
+  image: string;
+
   @Column({ type: 'float', transformer: { to: v => v, from: v => v }, nullable: true })
   embedding: number[]; 
 

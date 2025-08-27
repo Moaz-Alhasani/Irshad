@@ -33,6 +33,10 @@ export class CreateJobDto {
 
   @IsOptional()
   @IsString()
+  image?:string;
+
+  @IsOptional()
+  @IsString()
   employmentType?: string;
 
   @IsOptional()

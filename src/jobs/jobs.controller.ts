@@ -44,7 +44,7 @@ export class JobsController {
   @Roles(UserRole.EMPLOYER)
   @UseGuards(JwtAuthGuard,RolesGuard)
   @Post(':companyId')
-  @ImageFileInterceptor('file')
+  @ImageFileInterceptor('img')
   async createJob(
     @Param('companyId') companyId: number,
     @Body() createJobDto: CreateJobDto,
@@ -55,12 +55,12 @@ export class JobsController {
     if (file) {
     imageUrl = `http://localhost:3000/uploads/images/${file.filename}`;
     }
-    return this.jobsService.createJob({ ...createJobDto, image: imageUrl }, companyId);
+    return this.jobsService.createJob({ ...createJobDto, image: imageUrl }, companyId,user);
   }
 
   @Roles(UserRole.EMPLOYER)
   @UseGuards(JwtAuthGuard,RolesGuard)
-  @ImageFileInterceptor('file')
+  @ImageFileInterceptor('img')
   @Put(':id')
   async updateJob(
     @Param('id') id: number,

@@ -16,9 +16,17 @@ export class JobsService {
     private readonly companyRepository: Repository<CompanyEntity>,
   ) {}
 
-  async createJob(createJobDto: CreateJobDto, companyId: number): Promise<JobEntity> {
+  async createJob(createJobDto: CreateJobDto, companyId: number,user:any): Promise<JobEntity> {
     const company = await this.companyRepository.findOne({ where: { id: companyId } });
     if (!company) throw new Error('Company not found');
+
+    if(!company.isVerified){
+      throw new ForbiddenException("your company cannot post any job right now")
+    }
+
+    if(company.user.id!==user.id){
+      throw new ForbiddenException('You cannot post this job');
+    }
 
     const job = this.jobRepository.create({
       ...createJobDto,

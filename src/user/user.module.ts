@@ -9,9 +9,10 @@ import { AuthService } from './user.service';
 import { jwtStrategy } from './strategies/jwt.strategy';
 import { CompanyManagementModule } from 'src/company-management/company-management.module';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
+import { ResumeEntity } from 'src/resumes/entities/resume.entity';
 
 @Module({
-  imports:[TypeOrmModule.forFeature([UserEntity,CompanyEntity]),
+  imports:[TypeOrmModule.forFeature([UserEntity,CompanyEntity,ResumeEntity]),
   PassportModule,
   JwtModule.register({}),
   CompanyManagementModule 

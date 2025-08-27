@@ -1,0 +1,76 @@
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DeepPartial, Repository } from 'typeorm';
+import { ResumeEntity } from './entities/resume.entity';
+import axios from 'axios';
+
+interface FlaskResponse {
+  parser_output?: {
+    Skills?: string[];
+    Education?: string[];
+    Certifications?: string[];
+    Languages?: string[];
+  };
+  ner_entities?: {
+    PER?: string[];
+    LOC?: string[];
+    ORG?: string[];
+    MISC?: string[];
+  };
+  email?: string;
+  phone?: string;
+  estimated_experience_years?: number;
+  [key: string]: any;
+}
+
+@Injectable()
+export class ResumesService {
+  constructor(
+    @InjectRepository(ResumeEntity)
+    private resumeRepo: Repository<ResumeEntity>,
+  ) {}
+
+  async sendToFlaskAndSave(filePath: string, userId: number) {
+    try {
+      const flaskResponse = await axios.post<FlaskResponse>(
+        'http://localhost:5000/analyze',
+        { file_path: filePath }
+      );
+
+      const data = flaskResponse.data;
+
+      // دمج الـ Skills بشكل نظيف مع إزالة التكرار
+      const combinedSkills = Array.from(
+        new Set([
+          ...(data.parser_output?.Skills || []),
+          ...(data.ner_entities?.MISC || []),
+        ])
+      );
+
+      const university = data.ner_entities?.ORG?.[0] || null;
+      const location = data.ner_entities?.LOC?.[0] || null;
+
+      const resume = this.resumeRepo.create({
+        file_path: filePath,
+        extracted_skills: combinedSkills,
+        education: data.parser_output?.Education || [],
+        certifications: data.parser_output?.Certifications || [],
+        languages: data.parser_output?.Languages?.length
+          ? data.parser_output.Languages
+          : ['Arabic'],
+        experience_years: data.estimated_experience_years || 0,
+        phone: data.phone || null,
+        university: university,
+        location: location,
+      } as DeepPartial<ResumeEntity>);
+
+      // ربط المستخدم
+      resume.user = { id: userId } as any;
+
+      return await this.resumeRepo.save(resume);
+    } catch (err: any) {
+      console.error("Error sending to Flask:", err.message);
+      throw err;
+    }
+  }
+}

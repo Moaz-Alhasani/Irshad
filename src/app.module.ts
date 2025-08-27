@@ -9,6 +9,8 @@ import { CompanyManagementModule } from './company-management/company-management
 import { CompanyEntity } from './company-management/entities/company-management.entity';
 import { JobsModule } from './jobs/jobs.module';
 import { JobEntity } from './jobs/entities/job.entity';
+import { ResumesModule } from './resumes/resumes.module';
+import { ResumeEntity } from './resumes/entities/resume.entity';
 
 
 @Module({
@@ -24,13 +26,14 @@ import { JobEntity } from './jobs/entities/job.entity';
         username: configService.get<string>('DB_USER'),
         password: configService.get<string>('DB_PASSWORD'), 
         database: configService.get<string>('DB_NAME'),
-        entities: [UserEntity,CompanyEntity,JobEntity],
+        entities: [UserEntity,CompanyEntity,JobEntity,ResumeEntity],
         synchronize: true,
       }),
     }),
     AuthModule,
     CompanyManagementModule,
     JobsModule,
+    ResumesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

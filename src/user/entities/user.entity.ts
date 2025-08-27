@@ -1,4 +1,5 @@
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
+import { ResumeEntity } from 'src/resumes/entities/resume.entity';
 import { 
   Column, 
   CreateDateColumn, 
@@ -40,6 +41,9 @@ export class UserEntity {
 
   @OneToMany(() => CompanyEntity, company => company.user)
   companies: CompanyEntity[];
+
+  @OneToMany(() => ResumeEntity, resume => resume.user)
+  resumes: ResumeEntity[];
 
 
   @Column({  type: 'boolean', default: true })

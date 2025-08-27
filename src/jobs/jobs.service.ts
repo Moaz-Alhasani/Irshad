@@ -17,7 +17,11 @@ export class JobsService {
   ) {}
 
   async createJob(createJobDto: CreateJobDto, companyId: number,user:any): Promise<JobEntity> {
-    const company = await this.companyRepository.findOne({ where: { id: companyId } });
+      const company = await this.companyRepository.findOne({
+        where: { id: companyId },
+        relations: ['user'], 
+      });
+
     if (!company) throw new Error('Company not found');
 
     if(!company.isVerified){

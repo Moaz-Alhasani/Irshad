@@ -41,48 +41,64 @@ export function ImageFileInterceptor(fieldName: string) {
 @Controller('jobs')
 export class JobsController {
   constructor(private readonly jobsService: JobsService) {}
+  private transformJobBody(body: any, file?: Express.Multer.File): CreateJobDto {
+    let embedding: number[] | undefined = undefined;
+    if (body.embedding) {
+      try {
+        embedding = JSON.parse(body.embedding);
+      } catch (e) {
+        embedding = undefined;
+      }
+    }
+    return {
+      title: body.title,
+      description: body.description,
+      requiredSkills: body.requiredSkills?.split(',') || [],
+      requiredEducation: body.requiredEducation?.split(',') || [],
+      requiredExperience: body.requiredExperience ? Number(body.requiredExperience) : undefined,
+      location: body.location,
+      employmentType: body.employmentType,
+      image: file ? `http://localhost:3000/uploads/images/${file.filename}` : undefined,
+      embedding,
+    };
+  }
+
   @Roles(UserRole.EMPLOYER)
-  @UseGuards(JwtAuthGuard,RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post(':companyId')
   @ImageFileInterceptor('img')
   async createJob(
     @Param('companyId') companyId: number,
-    @Body() createJobDto: CreateJobDto,
+    @Body() body: any,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: any,
   ) {
-    let imageUrl:string|undefined = undefined;
-    if (file) {
-    imageUrl = `http://localhost:3000/uploads/images/${file.filename}`;
-    }
-    return this.jobsService.createJob({ ...createJobDto, image: imageUrl }, companyId,user);
+    const createJobDto = this.transformJobBody(body, file);
+    return this.jobsService.createJob(createJobDto, companyId, user);
   }
 
   @Roles(UserRole.EMPLOYER)
-  @UseGuards(JwtAuthGuard,RolesGuard)
-  @ImageFileInterceptor('img')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Put(':id')
+  @ImageFileInterceptor('img')
   async updateJob(
     @Param('id') id: number,
-    @Body() updateDto: Partial<CreateJobDto>,
+    @Body() body: any,
     @UploadedFile() file: Express.Multer.File,
-    @CurrentUser()user:any
+    @CurrentUser() user: any,
   ) {
-
-    let imageUrl:string|undefined = undefined;
-    if (file) {
-    imageUrl = `http://localhost:3000/uploads/images/${file.filename}`;
-    }
-
-    return this.jobsService.updateJob(id,{...updateDto,image:imageUrl},user);
+    const updateDto = this.transformJobBody(body, file);
+    return this.jobsService.updateJob(id, updateDto, user);
   }
-  @Roles(UserRole.EMPLOYER,UserRole.ADMIN)
-  @UseGuards(JwtAuthGuard,RolesGuard)
+
+  @Roles(UserRole.EMPLOYER, UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
-  async deleteJob(@Param('id') id: number,
-    @CurrentUser()user:any
+  async deleteJob(
+    @Param('id') id: number,
+    @CurrentUser() user: any,
   ) {
-    return this.jobsService.deleteJob(id,user);
+    return this.jobsService.deleteJob(id, user);
   }
 
 }

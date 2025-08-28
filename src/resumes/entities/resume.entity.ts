@@ -33,6 +33,9 @@ export class ResumeEntity {
   @Column({ nullable: true })
   location: string;
 
+  @Column('jsonb', { nullable: true })
+  embedding: number[];
+
   @ManyToOne(() => UserEntity, user => user.resumes, { onDelete: 'CASCADE' })
   user: UserEntity;
 

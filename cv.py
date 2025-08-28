@@ -3,9 +3,10 @@ import re
 import json
 from datetime import datetime
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
-
+from embeddings import compute_embedding
 resume_parser_model_path = r"D:\LaMini-Flan"
 ner_model_path = r"D:\RoBERTa-NER"
+
 
 
 print("Loading LaMini-Flan model...")
@@ -117,7 +118,7 @@ def estimate_experience_years(text):
     if years:
         return round(sum(years), 1)
     else:
-        return 1  # افتراض سنة واحدة على الأقل
+        return 1  
 
 
 def analyze_resume(file_path: str):
@@ -137,11 +138,17 @@ def analyze_resume(file_path: str):
     print("📊 Estimating years of experience...")
     exp_years = estimate_experience_years(resume_text + "\n" + json.dumps(parsed_json))
 
+    combined_skills = list(set(parsed_json.get("Skills", []) + ner_entities.get("MISC", [])))
+
+    print("🟢 Calculating embeddings for skills...")
+    skills_embedding = compute_embedding(combined_skills) 
+
     print("✅ Analysis complete.")
     return {
         "parser_output": parsed_json,
         "ner_entities": ner_entities,
         "email": email,
         "phone": phone,
-        "experience_years": exp_years
+        "experience_years": exp_years,
+        "skills_embedding": skills_embedding 
     }

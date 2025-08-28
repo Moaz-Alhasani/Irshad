@@ -30,7 +30,7 @@ export class ResumesService {
     private resumeRepo: Repository<ResumeEntity>,
   ) {}
 
-  async sendToFlaskAndSave(filePath: string, userId: number) {
+async sendToFlaskAndSave(filePath: string, userId: number) {
     try {
       const flaskResponse = await axios.post<FlaskResponse>(
         'http://localhost:5000/analyze',
@@ -39,7 +39,6 @@ export class ResumesService {
 
       const data = flaskResponse.data;
 
-      // دمج الـ Skills بشكل نظيف مع إزالة التكرار
       const combinedSkills = Array.from(
         new Set([
           ...(data.parser_output?.Skills || []),
@@ -50,6 +49,9 @@ export class ResumesService {
       const university = data.ner_entities?.ORG?.[0] || null;
       const location = data.ner_entities?.LOC?.[0] || null;
 
+      const embeddingNumbers = Array.isArray(data.skills_embedding)
+      ? data.skills_embedding.map(x => Number(x)).filter(x => !isNaN(x))
+      : [];
       const resume = this.resumeRepo.create({
         file_path: filePath,
         extracted_skills: combinedSkills,
@@ -60,12 +62,11 @@ export class ResumesService {
           : ['Arabic'],
         experience_years: data.estimated_experience_years || 0,
         phone: data.phone || null,
-        university: university,
-        location: location,
+        university,
+        location,
+        embedding:  embeddingNumbers,
+        user: { id: userId } as any,
       } as DeepPartial<ResumeEntity>);
-
-      // ربط المستخدم
-      resume.user = { id: userId } as any;
 
       return await this.resumeRepo.save(resume);
     } catch (err: any) {
@@ -74,3 +75,5 @@ export class ResumesService {
     }
   }
 }
+
+

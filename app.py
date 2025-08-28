@@ -15,12 +15,17 @@ def analyze():
     print("🔹 Full extracted result:")
     print(result) 
 
+
+    skills_embedding = result.get("skills_embedding", [])
+    skills_embedding = [float(x) for x in skills_embedding]
+
     response = {
-        "parser_output": result.get("parser_output", {}),
-        "ner_entities": result.get("ner_entities", {}),
-        "email": result.get("email"),
-        "phone": result.get("phone"),
-        "estimated_experience_years": result.get("experience_years", 1)
+    "parser_output": result.get("parser_output", {}),
+    "ner_entities": result.get("ner_entities", {}),
+    "email": result.get("email"),
+    "phone": result.get("phone"),
+    "estimated_experience_years": result.get("experience_years", 1),
+    "skills_embedding": skills_embedding
     }
 
     return jsonify(response)

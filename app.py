@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 from cv import analyze_resume
+from embeddings import compute_embedding
 
 app = Flask(__name__)
 
@@ -23,6 +24,20 @@ def analyze():
     }
 
     return jsonify(response)
+
+
+@app.route("/get-embedding", methods=["POST"])
+def get_embedding():
+    data = request.get_json()
+    texts = data.get('texts', [])
+    
+    if not texts:
+        return jsonify({'embedding': []}), 400
+    
+    avg_embedding = compute_embedding(texts)
+    
+    return jsonify({'embedding': avg_embedding})
+
 
 if __name__ == "__main__":
     app.run(port=5000, debug=False, use_reloader=False)

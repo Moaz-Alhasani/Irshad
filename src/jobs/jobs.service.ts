@@ -6,6 +6,12 @@ import { JobEntity } from './entities/job.entity';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { Repository } from 'typeorm';
 import { UserEntity, UserRole } from 'src/user/entities/user.entity';
+import axios from 'axios';
+
+
+interface FlaskEmbeddingResponse {
+  embedding: number[];
+}
 
 @Injectable()
 export class JobsService {
@@ -16,27 +22,36 @@ export class JobsService {
     private readonly companyRepository: Repository<CompanyEntity>,
   ) {}
 
-  async createJob(createJobDto: CreateJobDto, companyId: number,user:any): Promise<JobEntity> {
-      const company = await this.companyRepository.findOne({
-        where: { id: companyId },
-        relations: ['user'], 
-      });
+  async createJob(createJobDto: CreateJobDto, companyId: number, user: any): Promise<JobEntity> {
+    const company = await this.companyRepository.findOne({
+      where: { id: companyId },
+      relations: ['user'],
+    });
 
     if (!company) throw new Error('Company not found');
-
-    if(!company.isVerified){
-      throw new ForbiddenException("your company cannot post any job right now")
+    if (!company.isVerified) throw new ForbiddenException("your company cannot post any job right now");
+    if (company.user.id !== user.id) throw new ForbiddenException('You cannot post this job');
+    
+    let skills: string[] = [];
+    if (createJobDto.requiredSkills?.length) {
+      skills = createJobDto.requiredSkills
+        .map(skill => skill.replace(/[\[\]"]+/g, '').trim()) 
+        .filter(skill => skill.length > 0);                 
     }
-
-    if(company.user.id!==user.id){
-      throw new ForbiddenException('You cannot post this job');
+    let embedding: number[] = [];
+    if (skills.length) {
+      const flaskRes = await axios.post<FlaskEmbeddingResponse>(
+        'http://localhost:5000/get-embedding',
+        { texts: skills }
+      );
+      embedding = flaskRes.data.embedding;
     }
-
     const job = this.jobRepository.create({
       ...createJobDto,
       company,
+      requiredSkills: skills,
+      embedding,
     });
-
     return await this.jobRepository.save(job);
   }
 

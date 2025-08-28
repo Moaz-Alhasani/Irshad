@@ -8,6 +8,13 @@ import {
 } from 'typeorm';
 import { CompanyEntity } from '../../company-management/entities/company-management.entity';
 
+export enum EmploymentType {
+  PART_TIME = 'part-time',
+  FULL_TIME = 'full-time',
+  ON_SITE = 'on-site',
+  REMOTE = 'remote',
+}
+
 @Entity('jobs')
 export class JobEntity {
   @PrimaryGeneratedColumn()
@@ -35,14 +42,19 @@ export class JobEntity {
   @Column({ type: 'text', nullable: true })
   location: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
-  employmentType: string;
+  @Column({
+    type: 'enum',
+    enum: EmploymentType,
+    default: EmploymentType.ON_SITE, 
+    nullable: true,
+  })
+  employmentType: EmploymentType;
 
   @Column({ nullable: true })
   image: string;
 
-  @Column({ type: 'float', transformer: { to: v => v, from: v => v }, nullable: true })
-  embedding: number[]; 
+  @Column('jsonb', { nullable: true })
+  embedding: number[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

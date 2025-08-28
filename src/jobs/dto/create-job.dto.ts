@@ -4,7 +4,9 @@ import {
   IsOptional,
   IsArray,
   IsNumber,
+  IsEnum,
 } from 'class-validator';
+import { EmploymentType } from '../entities/job.entity';
 
 export class CreateJobDto {
   @IsNotEmpty()
@@ -36,8 +38,8 @@ export class CreateJobDto {
   image?:string;
 
   @IsOptional()
-  @IsString()
-  employmentType?: string;
+  @IsEnum(EmploymentType)
+  employmentType?: EmploymentType;
 
   @IsOptional()
   embedding?: number[];

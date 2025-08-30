@@ -78,4 +78,19 @@ export class JobsService {
     return { message: 'Job deleted successfully' };
   }
 
+async getAllJobsWithEmbedding() {
+  const jobs = await this.jobRepository.find({ relations: ['company'] });
+  return jobs
+    .filter(job => job.company) // تجاهل الوظائف بدون شركة
+    .map(job => ({
+      id: job.id,
+      title: job.title,
+      required: job.requiredSkills,
+      requiredExperience: job.requiredExperience,
+      requiredEdu: job.requiredEducation,
+      typejob: job.employmentType,
+      embedding: job.embedding,
+      company: { id: job.company.id, name: job.company.companyName }
+    }));
+}
 }

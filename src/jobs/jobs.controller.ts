@@ -101,4 +101,9 @@ export class JobsController {
     return this.jobsService.deleteJob(id, user);
   }
 
+  @Get()
+  async getJobs() {
+    return this.jobsService.getAllJobsWithEmbedding();
+  }
+
 }

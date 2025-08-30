@@ -10,12 +10,16 @@ import { jwtStrategy } from './strategies/jwt.strategy';
 import { CompanyManagementModule } from 'src/company-management/company-management.module';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { ResumeEntity } from 'src/resumes/entities/resume.entity';
+import { ResumesModule } from 'src/resumes/resumes.module';
+import { JobsModule } from 'src/jobs/jobs.module';
 
 @Module({
   imports:[TypeOrmModule.forFeature([UserEntity,CompanyEntity,ResumeEntity]),
   PassportModule,
   JwtModule.register({}),
-  CompanyManagementModule 
+  CompanyManagementModule,
+  ResumesModule,
+  JobsModule
 ],
   exports:[AuthModule,RolesGuard],
   controllers: [AuthController],

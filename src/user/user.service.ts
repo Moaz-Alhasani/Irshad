@@ -16,8 +16,15 @@ import { UpdateUserInfo } from './dto/update-user.dto';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { CompanyManagementService } from 'src/company-management/company-management.service';
 import { retry } from 'rxjs';
+import { JobsService } from 'src/jobs/jobs.service';
+import axios from 'axios';
 
 
+
+interface FlaskSimilarityResponse {
+  jobId: number;
+  score: number;
+}
 
 @Injectable()
 export class AuthService {
@@ -25,6 +32,7 @@ export class AuthService {
     @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
     private jwtService: JwtService,
     private ComapnyService:CompanyManagementService,
+    private readonly jobsService: JobsService,
     @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>
   ) {}
 
@@ -170,6 +178,54 @@ export class AuthService {
     await this.companyRepository.remove(company);
     return `the company with ${compid} has been refused`
   }
+
+
+
+  async getUserWithResume(userId: number) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['resumes'],
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const { password, ...userWithoutPassword } = user;
+    return userWithoutPassword;
+}
+
+
+async getRecommendedJobs(userId: number) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      relations: ['resumes'],
+    });
+    if (!user) throw new NotFoundException('User not found');
+    if (!user.resumes || user.resumes.length === 0) {
+      throw new ForbiddenException('User does not have any resume embeddings');
+    }
+    const resumeEmbedding: number[] = user.resumes[0].embedding;
+    const allJobs = await this.jobsService.getAllJobsWithEmbedding();
+    const flaskRes = await axios.post<FlaskSimilarityResponse[]>(
+      'http://localhost:5000/get-similarity',
+      {
+        resume_embedding: resumeEmbedding,
+        jobs: allJobs.map(job => ({ id: job.id, embedding: job.embedding })),
+      }
+    );
+    const sortedJobs = flaskRes.data
+      .sort((a, b) => b.score - a.score)
+      .map(item => {
+        const job = allJobs.find(j => j.id === item.jobId);
+        return {
+          ...job,
+          similarityScore: item.score,
+        };
+      });
+    return sortedJobs;
+  }
+
 
 
   private generateToken(user: UserEntity) {

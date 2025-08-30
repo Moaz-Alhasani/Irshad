@@ -32,8 +32,8 @@ export class AuthController {
 
   @UseGuards(JwtAuthGuard)
   @Get('profile')
-  getProfile(@CurrentUser() user: any) {
-    return user;
+  getFullProfile(@CurrentUser() user: any) {
+    return this.authservice.getUserWithResume(user.id);
   }
 
   @Post('createAdmin')
@@ -76,9 +76,12 @@ export class AuthController {
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard,RolesGuard)
   NonacceptTheCompany(@Param('id',ParseIntPipe)compid:number){
-
     return this.authservice.AdminNonAcceptTheCompany(compid)
   }
-  
 
+  @UseGuards(JwtAuthGuard)
+  @Get('recommended-jobs')
+  async JobsRecommendtion(@CurrentUser() currentUser: any){
+      return this.authservice.getRecommendedJobs(currentUser.id);
+  }
 }

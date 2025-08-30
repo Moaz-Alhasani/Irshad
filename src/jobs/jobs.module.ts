@@ -4,9 +4,10 @@ import { JobsController } from './jobs.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JobEntity } from './entities/job.entity';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
+import { CompanyManagementModule } from 'src/company-management/company-management.module';
 
 @Module({
-  imports:[TypeOrmModule.forFeature([JobEntity,CompanyEntity])],
+  imports:[TypeOrmModule.forFeature([JobEntity,CompanyEntity]),CompanyManagementModule],
   controllers: [JobsController],
   providers: [JobsService],
   exports:[JobsService]

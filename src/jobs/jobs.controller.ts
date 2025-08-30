@@ -11,6 +11,7 @@ import { diskStorage } from 'multer';
 import { Roles } from 'src/user/decorators/roles.decorators';
 import { UserRole } from 'src/user/entities/user.entity';
 import { RolesGuard } from 'src/user/guards/roles-guard';
+import { CompanyRole } from 'src/company-management/entities/company-management.entity';
 
 
 
@@ -63,7 +64,7 @@ export class JobsController {
     };
   }
 
-  @Roles(UserRole.EMPLOYER)
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post(':companyId')
   @ImageFileInterceptor('img')
@@ -77,7 +78,7 @@ export class JobsController {
     return this.jobsService.createJob(createJobDto, companyId, user);
   }
 
-  @Roles(UserRole.EMPLOYER)
+
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Put(':id')
   @ImageFileInterceptor('img')
@@ -91,7 +92,7 @@ export class JobsController {
     return this.jobsService.updateJob(id, updateDto, user);
   }
 
-  @Roles(UserRole.EMPLOYER, UserRole.ADMIN)
+  @Roles( UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
   async deleteJob(

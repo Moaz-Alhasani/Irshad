@@ -255,14 +255,14 @@ async getRecommendedJobs(userId: number) {
     });
   }
 
-  private async verifyPassword(
+  public async verifyPassword(
     plainPassword: string,
     hashedPassword: string,
   ): Promise<boolean> {
     return await bcrypt.compare(plainPassword, hashedPassword);
   }
 
-  private async hashPassword(password: string): Promise<string> {
+  public async hashPassword(password: string): Promise<string> {
     return await bcrypt.hash(password, 10);
   }
 }

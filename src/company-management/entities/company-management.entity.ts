@@ -1,4 +1,3 @@
-export class CompanyManagement {}
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -8,19 +7,29 @@ import {
   JoinColumn,
   OneToMany,
 } from 'typeorm';
-import { UserEntity } from '../../user/entities/user.entity'; // تأكد من وجود هذا الملف
+import { UserEntity } from '../../user/entities/user.entity';
 import { JobEntity } from 'src/jobs/entities/job.entity';
+
+
+export enum CompanyRole {
+  COMPANY = 'company',
+}
 
 @Entity('companies')
 export class CompanyEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => UserEntity, user => user.companies, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'user_id' })
-  user: UserEntity;
+  @Column({ name: 'company_email', type: 'varchar', unique: true })
+  email: string;
 
-  @OneToMany(()=>JobEntity, job => job.company)
+  @Column({ name: 'company_password', type: 'text' })
+  password: string;
+
+  @OneToMany(() => UserEntity, (user) => user.company)
+  employees: UserEntity[];
+
+  @OneToMany(() => JobEntity, (job) => job.company)
   jobs: JobEntity[];
 
   @Column({ name: 'company_name', type: 'varchar', length: 200 })
@@ -34,6 +43,13 @@ export class CompanyEntity {
 
   @Column({ name: 'is_verified', type: 'boolean', default: false })
   isVerified: boolean;
+
+  @Column({
+    type: 'enum',
+    enum: CompanyRole,
+    default: CompanyRole.COMPANY,
+  })
+  role: CompanyRole;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;

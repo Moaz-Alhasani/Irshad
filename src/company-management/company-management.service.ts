@@ -1,10 +1,13 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCompanyManagementDto } from './dto/create-company-management.dto';
 import { UpdateCompanyManagementDto } from './dto/update-company-management.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CompanyEntity } from './entities/company-management.entity';
 import { Repository } from 'typeorm';
 import { UserEntity } from 'src/user/entities/user.entity';
+import { AuthService } from 'src/user/user.service';
+import { JwtService } from '@nestjs/jwt';
+import { LoginCompanyDto } from './dto/loginCompany.dto';
 
 @Injectable()
 export class CompanyManagementService {
@@ -15,22 +18,63 @@ export class CompanyManagementService {
 
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+    private authService:AuthService,
+    private jwtService: JwtService,
   ) {}
+
+
+
   
 
-  async createCompany(createCompanyDto: CreateCompanyManagementDto, userId: number): Promise<CompanyEntity> {
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new Error('User not found');
+  async RegisterAsCompany(createCompanyDto: CreateCompanyManagementDto) {
+    const oldCompany=await this.companyRepository.findOne({
+      where:{
+        email:createCompanyDto.email
+      }
+    })
+    if(oldCompany){
+      throw new ForbiddenException(`company with ${oldCompany.email} is already register`)
     }
+    const hashedpassword=await this.authService.hashPassword(createCompanyDto.password);
+    const NewCompany=await this.companyRepository.create({
+        companyName:createCompanyDto.companyName,
+        companyWebsite:createCompanyDto.companyWebsite,
+        companyLocation:createCompanyDto.companyLocation,
+        email:createCompanyDto.email,
+        password:hashedpassword,
+    })
+    
+    const savedCompany=await this.companyRepository.save(NewCompany)
+    const {password,...CompanyWithOutPassword}=savedCompany
+    const token= this.generateToken(savedCompany);
+    return {
+      company: CompanyWithOutPassword,
+      ...token,
+      message:`Welcome ${savedCompany.companyName} to our app`
+  };
+}
 
-    const company = this.companyRepository.create({
-      ...createCompanyDto,
-      user,
-      isVerified:false
-    });
 
-    return await this.companyRepository.save(company);
+
+  async LoginComapny(companyDto:LoginCompanyDto){
+      const oldCompany=await this.companyRepository.findOne({
+      where:{
+        email:companyDto.email
+      }
+    })
+      if(!oldCompany){
+      throw new ForbiddenException(`company with ${companyDto.email} is not exit you have to register `)
+    }
+    const matchedpassword=await this.authService.verifyPassword(companyDto.password,oldCompany.password)
+    if(!matchedpassword){
+      throw new ForbiddenException('Invalid password');
+    }
+    const tokens = this.generateToken(oldCompany);
+    const { password, ...userWithoutPassword } = oldCompany;
+    return {
+      user: userWithoutPassword,
+      ...tokens,
+    };
   }
 
 
@@ -45,5 +89,36 @@ export class CompanyManagementService {
     }
 
     return company.jobs;
+  }
+
+  
+
+
+
+  private generateToken(company: CompanyEntity) {
+    return {
+      accessToken: this.generateAccessToken(company),
+      refreshToken: this.generateRefreshToken(company),
+    };
+  }
+
+  private generateAccessToken(company: CompanyEntity): string {
+    const payload = {
+      sub: company.id,
+      email: company.email,
+      role: company.role,
+    };
+    return this.jwtService.sign(payload, {
+      secret: process.env.JWT_SECRET || 'jwt_secret',
+      expiresIn: '15m',
+    });
+  }
+
+  private generateRefreshToken(company: CompanyEntity): string {
+    const payload = { sub: company.id };
+    return this.jwtService.sign(payload, {
+      secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+      expiresIn: '7d',
+    });
   }
 }

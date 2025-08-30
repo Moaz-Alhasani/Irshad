@@ -21,7 +21,7 @@ import { JobsModule } from 'src/jobs/jobs.module';
   ResumesModule,
   JobsModule
 ],
-  exports:[AuthModule,RolesGuard],
+  exports:[AuthModule,RolesGuard,AuthService],
   controllers: [AuthController],
   providers: [AuthService,jwtStrategy,RolesGuard],
 })

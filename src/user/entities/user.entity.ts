@@ -4,13 +4,14 @@ import {
   Column, 
   CreateDateColumn, 
   Entity, 
+  JoinColumn, 
+  ManyToOne, 
   OneToMany, 
   PrimaryGeneratedColumn 
 } from 'typeorm';
 
 export enum UserRole {
   JOB_SEEKER = 'job_seeker',
-  EMPLOYER = 'employer',
   ADMIN = 'admin',
 }
 
@@ -39,8 +40,9 @@ export class UserEntity {
   role: UserRole;
 
 
-  @OneToMany(() => CompanyEntity, company => company.user)
-  companies: CompanyEntity[];
+  @ManyToOne(() => CompanyEntity, (company) => company.employees, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'company_id' })
+  company: CompanyEntity;
 
   @OneToMany(() => ResumeEntity, resume => resume.user)
   resumes: ResumeEntity[];

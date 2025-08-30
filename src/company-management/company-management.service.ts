@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCompanyManagementDto } from './dto/create-company-management.dto';
 import { UpdateCompanyManagementDto } from './dto/update-company-management.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,14 +12,17 @@ import { LoginCompanyDto } from './dto/loginCompany.dto';
 @Injectable()
 export class CompanyManagementService {
   
-    constructor(
+  constructor(
     @InjectRepository(CompanyEntity)
     private readonly companyRepository: Repository<CompanyEntity>,
 
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
-    private authService:AuthService,
-    private jwtService: JwtService,
+
+    @Inject(forwardRef(() => AuthService))
+    private readonly authService: AuthService,
+
+    private readonly jwtService: JwtService,
   ) {}
 
 

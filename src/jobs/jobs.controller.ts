@@ -1,7 +1,17 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Put, UseInterceptors, UploadedFile } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Put,
+  Param,
+  Delete,
+  UseGuards,
+  UseInterceptors,
+  UploadedFile,
+} from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CreateJobDto } from './dto/create-job.dto';
-import { UpdateJobDto } from './dto/update-job.dto';
 import { JwtAuthGuard } from 'src/user/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/user/decorators/current_user.decorators';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -12,8 +22,6 @@ import { Roles } from 'src/user/decorators/roles.decorators';
 import { UserRole } from 'src/user/entities/user.entity';
 import { RolesGuard } from 'src/user/guards/roles-guard';
 import { CompanyRole } from 'src/company-management/entities/company-management.entity';
-
-
 
 export function ImageFileInterceptor(fieldName: string) {
   return UseInterceptors(
@@ -42,6 +50,7 @@ export function ImageFileInterceptor(fieldName: string) {
 @Controller('jobs')
 export class JobsController {
   constructor(private readonly jobsService: JobsService) {}
+
   private transformJobBody(body: any, file?: Express.Multer.File): CreateJobDto {
     let embedding: number[] | undefined = undefined;
     if (body.embedding) {
@@ -64,7 +73,7 @@ export class JobsController {
     };
   }
 
-
+  @Roles(CompanyRole.COMPANY)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Post(':companyId')
   @ImageFileInterceptor('img')
@@ -78,7 +87,7 @@ export class JobsController {
     return this.jobsService.createJob(createJobDto, companyId, user);
   }
 
-
+  @Roles(CompanyRole.COMPANY)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Put(':id')
   @ImageFileInterceptor('img')
@@ -86,25 +95,22 @@ export class JobsController {
     @Param('id') id: number,
     @Body() body: any,
     @UploadedFile() file: Express.Multer.File,
-    @CurrentUser() user: any,
+    @CurrentUser() company: any,
   ) {
     const updateDto = this.transformJobBody(body, file);
-    return this.jobsService.updateJob(id, updateDto, user);
+    return this.jobsService.updateJob(id, updateDto, company);
   }
 
-  @Roles( UserRole.ADMIN)
+  @Roles(UserRole.ADMIN, CompanyRole.COMPANY) 
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete(':id')
-  async deleteJob(
-    @Param('id') id: number,
-    @CurrentUser() user: any,
-  ) {
-    return this.jobsService.deleteJob(id, user);
+  async deleteJob(@Param('id') id: number, @CurrentUser() actor: any) {
+    return this.jobsService.deleteJob(id, actor);
   }
 
   @Get()
   async getJobs() {
     return this.jobsService.getAllJobsWithEmbedding();
   }
-
 }
+

@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule} from '@nestjs/jwt';
@@ -17,7 +17,7 @@ import { JobsModule } from 'src/jobs/jobs.module';
   imports:[TypeOrmModule.forFeature([UserEntity,CompanyEntity,ResumeEntity]),
   PassportModule,
   JwtModule.register({}),
-  CompanyManagementModule,
+  forwardRef(() => CompanyManagementModule),
   ResumesModule,
   JobsModule
 ],

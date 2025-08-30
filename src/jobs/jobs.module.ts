@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { JobsController } from './jobs.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -7,7 +7,7 @@ import { CompanyEntity } from 'src/company-management/entities/company-managemen
 import { CompanyManagementModule } from 'src/company-management/company-management.module';
 
 @Module({
-  imports:[TypeOrmModule.forFeature([JobEntity,CompanyEntity]),CompanyManagementModule],
+  imports:[TypeOrmModule.forFeature([JobEntity,CompanyEntity]),forwardRef(() => CompanyManagementModule)],
   controllers: [JobsController],
   providers: [JobsService],
   exports:[JobsService]

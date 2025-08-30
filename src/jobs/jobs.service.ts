@@ -1,13 +1,12 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateJobDto } from './dto/create-job.dto';
-import { UpdateJobDto } from './dto/update-job.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JobEntity } from './entities/job.entity';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { Repository } from 'typeorm';
-import { UserEntity, UserRole } from 'src/user/entities/user.entity';
+import { UserRole } from 'src/user/entities/user.entity';
+import { CompanyRole } from 'src/company-management/entities/company-management.entity';
 import axios from 'axios';
-
 
 interface FlaskEmbeddingResponse {
   embedding: number[];
@@ -22,45 +21,46 @@ export class JobsService {
     private readonly companyRepository: Repository<CompanyEntity>,
   ) {}
 
-  async createJob(createJobDto: CreateJobDto, companyId: number, user: any): Promise<JobEntity> {
-    const company = await this.companyRepository.findOne({
+  async createJob(createJobDto: CreateJobDto, companyId: number, company: any): Promise<JobEntity> {
+    const companyEntity = await this.companyRepository.findOne({
       where: { id: companyId },
-      relations: ['user'],
     });
 
-    if (!company) throw new Error('Company not found');
-    if (!company.isVerified) throw new ForbiddenException("your company cannot post any job right now");
-    if (company.user.id !== user.id) throw new ForbiddenException('You cannot post this job');
-    
+    if (!companyEntity) throw new NotFoundException('Company not found');
+    if (!companyEntity.isVerified)
+      throw new ForbiddenException('Your company cannot post any job right now');
+
     let skills: string[] = [];
     if (createJobDto.requiredSkills?.length) {
       skills = createJobDto.requiredSkills
-        .map(skill => skill.replace(/[\[\]"]+/g, '').trim()) 
-        .filter(skill => skill.length > 0);                 
+        .map((skill) => skill.replace(/[\[\]"]+/g, '').trim())
+        .filter((skill) => skill.length > 0);
     }
+
     let embedding: number[] = [];
     if (skills.length) {
       const flaskRes = await axios.post<FlaskEmbeddingResponse>(
         'http://localhost:5000/get-embedding',
-        { texts: skills }
+        { texts: skills },
       );
       embedding = flaskRes.data.embedding;
     }
+
     const job = this.jobRepository.create({
       ...createJobDto,
-      company,
+      company: companyEntity,
       requiredSkills: skills,
       embedding,
     });
+
     return await this.jobRepository.save(job);
   }
 
-
-  async updateJob(id: number, updateDto: Partial<CreateJobDto>,user:any): Promise<JobEntity> {
-    const job = await this.jobRepository.findOne({ where: { id } });
+  async updateJob(id: number, updateDto: Partial<CreateJobDto>, company: any): Promise<JobEntity> {
+    const job = await this.jobRepository.findOne({ where: { id }, relations: ['company'] });
     if (!job) throw new NotFoundException('Job not found');
 
-    if((job.company.user.id!==user.id)||(user.role!==UserRole.ADMIN)){
+    if (job.company.id !== company.id) {
       throw new ForbiddenException('You cannot edit this job');
     }
 
@@ -68,29 +68,34 @@ export class JobsService {
     return await this.jobRepository.save(job);
   }
 
-  async deleteJob(id: number,user:any): Promise<{ message: string }> {
-    const job = await this.jobRepository.findOne({ where: { id } });
+  async deleteJob(id: number, actor: any): Promise<{ message: string }> {
+    const job = await this.jobRepository.findOne({ where: { id }, relations: ['company'] });
     if (!job) throw new NotFoundException('Job not found');
-    if((job.company.user.id!==user.id)||(user.role!==UserRole.ADMIN)){
+
+    if (
+      actor.role !== UserRole.ADMIN &&
+      !(actor.role === CompanyRole.COMPANY && job.company.id === actor.id)
+    ) {
       throw new ForbiddenException('You cannot delete this job');
     }
+
     await this.jobRepository.remove(job);
     return { message: 'Job deleted successfully' };
   }
 
-async getAllJobsWithEmbedding() {
-  const jobs = await this.jobRepository.find({ relations: ['company'] });
-  return jobs
-    .filter(job => job.company) // تجاهل الوظائف بدون شركة
-    .map(job => ({
-      id: job.id,
-      title: job.title,
-      required: job.requiredSkills,
-      requiredExperience: job.requiredExperience,
-      requiredEdu: job.requiredEducation,
-      typejob: job.employmentType,
-      embedding: job.embedding,
-      company: { id: job.company.id, name: job.company.companyName }
-    }));
-}
+  async getAllJobsWithEmbedding() {
+    const jobs = await this.jobRepository.find({ relations: ['company'] });
+    return jobs
+      .filter((job) => job.company)
+      .map((job) => ({
+        id: job.id,
+        title: job.title,
+        required: job.requiredSkills,
+        requiredExperience: job.requiredExperience,
+        requiredEdu: job.requiredEducation,
+        typejob: job.employmentType,
+        embedding: job.embedding,
+        company: { id: job.company.id, name: job.company.companyName },
+      }));
+  }
 }

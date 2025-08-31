@@ -9,6 +9,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFile,
+  Query,
 } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CreateJobDto } from './dto/create-job.dto';
@@ -111,6 +112,16 @@ export class JobsController {
   @Get()
   async getJobs() {
     return this.jobsService.getAllJobsWithEmbedding();
+  }
+
+  @Get('get-all-jobs')
+  async getAllJobs(){
+    return this.jobsService.getAllJobs();
+  }
+
+  @Get('search')
+  async searchjobs(@Query('keyword') keyword:string){
+    return this.jobsService.serachjobs(keyword)
   }
 }
 

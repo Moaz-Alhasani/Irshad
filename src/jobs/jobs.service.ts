@@ -3,7 +3,7 @@ import { CreateJobDto } from './dto/create-job.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JobEntity } from './entities/job.entity';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
-import { Like, Repository } from 'typeorm';
+import { ILike, Like, Repository } from 'typeorm';
 import { UserRole } from 'src/user/entities/user.entity';
 import { CompanyRole } from 'src/company-management/entities/company-management.entity';
 import axios from 'axios';
@@ -113,9 +113,10 @@ export class JobsService {
 
 
   async serachjobs(keyword:string):Promise<JobEntity[]>{
+    const cleanKeyword = keyword.trim().replace(/['"]+/g, "");
     const AllJobjs=await this.jobRepository.find({
       where:{
-        title:Like(`%${keyword}%`)
+        title:ILike(`%${cleanKeyword}%`)
       },
       relations:['company'],
       order:{

@@ -206,7 +206,9 @@ async getRecommendedJobs(userId: number) {
       throw new ForbiddenException('User does not have any resume embeddings');
     }
     const resumeEmbedding: number[] = user.resumes[0].embedding;
+    console.log("Resume embedding:", resumeEmbedding);
     const allJobs = await this.jobsService.getAllJobsWithEmbedding();
+    console.log("All jobs embeddings:", allJobs.map(j => j.embedding));
     const flaskRes = await axios.post<FlaskSimilarityResponse[]>(
       'http://localhost:5000/get-similarity',
       {
@@ -214,15 +216,20 @@ async getRecommendedJobs(userId: number) {
         jobs: allJobs.map(job => ({ id: job.id, embedding: job.embedding })),
       }
     );
+    console.log("Sending to Flask:", {
+    resume_embedding: resumeEmbedding,
+    jobs: allJobs.map(job => ({ id: job.id, embedding: job.embedding })),
+  });
     const sortedJobs = flaskRes.data
       .sort((a, b) => b.score - a.score)
-      .map(item => {
+      .map(item => {  
         const job = allJobs.find(j => j.id === item.jobId);
         return {
           ...job,
           similarityScore: item.score,
         };
       });
+    console.log("Sorted Recommended Jobs:", sortedJobs);
     return sortedJobs;
   }
 

@@ -7,10 +7,11 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { AuthModule } from 'src/user/user.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
+import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CompanyEntity, UserEntity]),
+    TypeOrmModule.forFeature([CompanyEntity, UserEntity,JobApplyEntity]),
     forwardRef(() => AuthModule),
       PassportModule,
       JwtModule.register({}), 

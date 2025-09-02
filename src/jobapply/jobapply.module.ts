@@ -6,9 +6,18 @@ import { JobEntity } from 'src/jobs/entities/job.entity';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { ResumeEntity } from 'src/resumes/entities/resume.entity';
+import { JobApplyEntity } from './entities/jobApplyEntitt';
 
 @Module({
-  imports:[TypeOrmModule.forFeature([JobEntity,UserEntity,CompanyEntity,ResumeEntity])],
+  imports:[
+    TypeOrmModule.forFeature([
+      JobEntity,
+      UserEntity,
+      CompanyEntity,
+      ResumeEntity,
+      JobApplyEntity, // <-- أضفناها هنا
+    ])
+  ],
   controllers: [JobapplyController],
   providers: [JobapplyService],
   exports:[JobapplyService]

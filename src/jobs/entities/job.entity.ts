@@ -5,8 +5,11 @@ import {
   CreateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
-import { CompanyEntity } from '../../company-management/entities/company-management.entity';
+import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
+import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
+
 
 export enum EmploymentType {
   PART_TIME = 'part-time',
@@ -20,9 +23,12 @@ export class JobEntity {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => CompanyEntity, company => company.jobs, { onDelete: 'CASCADE' })
+  @ManyToOne(() => CompanyEntity, (company) => company.jobs, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'company_id' })
   company: CompanyEntity;
+
+  @OneToMany(() => JobApplyEntity, (app) => app.job)
+  applications: JobApplyEntity[];
 
   @Column({ type: 'varchar', length: 200 })
   title: string;
@@ -45,7 +51,7 @@ export class JobEntity {
   @Column({
     type: 'enum',
     enum: EmploymentType,
-    default: EmploymentType.ON_SITE, 
+    default: EmploymentType.ON_SITE,
     nullable: true,
   })
   employmentType: EmploymentType;

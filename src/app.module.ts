@@ -11,6 +11,7 @@ import { JobsModule } from './jobs/jobs.module';
 import { JobEntity } from './jobs/entities/job.entity';
 import { ResumesModule } from './resumes/resumes.module';
 import { ResumeEntity } from './resumes/entities/resume.entity';
+import { JobapplyModule } from './jobapply/jobapply.module';
 
 
 @Module({
@@ -34,6 +35,7 @@ import { ResumeEntity } from './resumes/entities/resume.entity';
     CompanyManagementModule,
     JobsModule,
     ResumesModule,
+    JobapplyModule,
   ],
   controllers: [AppController],
   providers: [AppService],

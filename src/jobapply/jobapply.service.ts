@@ -33,6 +33,22 @@ export class JobapplyService {
         if(!olduser?.resumes||olduser.resumes.length === 0){
             throw new ForbiddenException(`user dont have an resumes`)
         }
+        const application = await this.jobApplyEntity.findOne({
+            where: {
+                job: { id: jobid },
+                user: { id: currentuser.id },
+            },
+            relations: ['job', 'user'],
+        });
+
+        if (application?.application_status === ApplicationStatus.PENDING) {
+            throw new ForbiddenException('You already have a pending application for this job');
+        }
+
+        if (application?.application_status === ApplicationStatus.ACCEPTED) {
+            throw new ForbiddenException('You have already been accepted for this job');
+        }
+
         const applied = this.jobApplyEntity.create({
             user: { id: currentuser.id },
             job: { id: jobid },
@@ -42,13 +58,35 @@ export class JobapplyService {
         return await this.jobApplyEntity.save(applied);
     }
 
-    
-    private async jobExist(jobid: number): Promise<boolean> {
-        const oldjob = await this.jobEntity.findOne({
-            where: { id: jobid },
+
+
+    async withdraw(jobid:number,currentuser:any){
+        const application = await this.jobApplyEntity.findOne({
+            where: {
+            job: { id: jobid },
+            user: { id: currentuser.id },
+            },
+            relations: ['job', 'user'],
         });
 
-        return oldjob !== null && oldjob !== undefined;
+        if (!application) {
+            throw new ForbiddenException(`You have not applied to this job`);
+        }
+
+        if (application.application_status === ApplicationStatus.ACCEPTED) {
+            throw new ForbiddenException(`You cannot withdraw after being accepted`);
+        }
+
+        application.application_status = ApplicationStatus.WITHDRAWN;
+        return await this.jobApplyEntity.save(application);
+    }
+
+    
+    private async jobExist(jobid: number): Promise<JobEntity | null> {
+    const oldjob = await this.jobEntity.findOne({
+        where: { id: jobid },
+    });
+    return oldjob;
     }
 
 }

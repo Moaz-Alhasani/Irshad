@@ -3,8 +3,22 @@ from cv import analyze_resume
 from embeddings import compute_embedding
 from sklearn.metrics.pairwise import cosine_similarity
 import numpy as np
-
+import joblib
+import math
+import os
 app = Flask(__name__)
+
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
+MODEL_DIR = os.path.join(BASE_DIR, "model")           
+
+tfidf_skills = joblib.load(os.path.join(MODEL_DIR, "tfidf_skills.pkl"))
+tfidf_edu = joblib.load(os.path.join(MODEL_DIR, "tfidf_edu.pkl"))
+role_encoder = joblib.load(os.path.join(MODEL_DIR, "role_encoder.pkl"))
+work_encoder = joblib.load(os.path.join(MODEL_DIR, "work_encoder.pkl"))
+scaler = joblib.load(os.path.join(MODEL_DIR, "scaler.pkl"))
+model = joblib.load(os.path.join(MODEL_DIR, "xgboost_model.pkl"))
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -86,6 +100,46 @@ def get_similarity():
 
     print("Similarity results:", results)
     return jsonify(results)
+
+
+@app.route("/predict-salary", methods=["POST"])
+def predict_salary():
+    data = request.get_json()
+    try:
+        exp_years = data.get("experience_years", 1)
+        skills_str = data.get("skills", "")
+        education_str = data.get("education", "")
+        role = data.get("role", "AI")
+        work_type = data.get("work_type", "Remote")
+
+  
+        skills_vec = tfidf_skills.transform([skills_str]).toarray()
+        edu_vec = tfidf_edu.transform([education_str.lower()]).toarray()
+        role_vec = role_encoder.transform([[role]])
+        work_vec = work_encoder.transform([[work_type]])
+        exp_vec = np.array([[exp_years]])
+
+  
+        final_vec = np.concatenate(
+            [exp_vec, skills_vec, edu_vec, role_vec, work_vec], axis=1
+        )
+        final_vec = scaler.transform(final_vec)
+
+ 
+        salary_pred = model.predict(final_vec)[0]
+        salary_rounded = int(math.ceil(salary_pred / 100) * 100)
+
+        monthly_salary = salary_rounded / 12
+        monthly_salary_rounded = int(math.ceil(monthly_salary / 100) * 100)
+
+        return jsonify({
+            "estimated_salary": monthly_salary_rounded,
+            "monthly_salary": monthly_salary_rounded
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(port=5000, debug=False, use_reloader=False)

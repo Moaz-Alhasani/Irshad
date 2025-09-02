@@ -23,7 +23,7 @@ export class JobapplyController {
         return this.jobsservice.JobApply(jobid, currentuser, createjobapplydto);
     }
 
-    @Post(':jobid')
+    @Post('withdrawjobs/:jobid')
     @Roles(UserRole.JOB_SEEKER)
     @UseGuards(JwtAuthGuard,RolesGuard)
     async withdrawJobs(@Param('jobid',ParseIntPipe)jobid:number,

@@ -45,7 +45,7 @@ export class JobApplyEntity {
     estimated_salary: number;
 
     @Column({ type: 'float', nullable: true })
-    similarity_score: number;
+    similarity_score: number | null;
 
     @Column({ type: 'float', nullable: true })
     ranking_score: number;

@@ -15,8 +15,8 @@ import { JobApplyEntity } from './entities/jobApplyEntitt';
       UserEntity,
       CompanyEntity,
       ResumeEntity,
-      JobApplyEntity, // <-- أضفناها هنا
-    ])
+      JobApplyEntity, 
+    ]),
   ],
   controllers: [JobapplyController],
   providers: [JobapplyService],

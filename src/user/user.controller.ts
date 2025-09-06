@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 
 import { Roles } from './decorators/roles.decorators';
 import { UserRole } from './entities/user.entity';
@@ -10,16 +10,35 @@ import { RegisterDto } from './dto/register-user.dto';
 import { LoginDto } from './dto/login-user.dto';
 import { UpdateUserInfo } from './dto/update-user.dto';
 import { jwtStrategy } from './strategies/jwt.strategy';
+import { extname } from 'path';
+import { diskStorage } from 'multer';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 
 @Controller('auth')
 export class AuthController {
   constructor(private authservice: AuthService) {}
 
+
   @Post('register')
-  register(@Body() registerDto: RegisterDto) {
-    return this.authservice.register(registerDto);
+  @UseInterceptors(FileInterceptor('profileImage', {
+    storage: diskStorage({
+      destination: './uploads/profile', 
+      filename: (req, file, cb) => {
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+        const ext = extname(file.originalname);
+        cb(null, `${uniqueSuffix}${ext}`);
+      },
+    }),
+  }))
+  register(
+    @Body() registerDto: RegisterDto,
+    @UploadedFile() file: Express.Multer.File
+  ) {
+    const imagePath = file ? `uploads/profile/${file.filename}` : null;
+    return this.authservice.register(registerDto, imagePath);
   }
+
   @Post('login')
   login(@Body() loginDto: LoginDto) {
     return this.authservice.login(loginDto);
@@ -43,19 +62,39 @@ export class AuthController {
     return this.authservice.createAdmin(registerDto);
   }
 
+  @Post('createSuperAdmin')
+  @Roles(UserRole.SUPER_ADMIN) // 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  createSuperAdmin(@Body() registerDto: RegisterDto) {
+    return this.authservice.createSuperAdmin(registerDto);
+  }
+
 
   @Put('update/:id')
   @UseGuards(JwtAuthGuard)
+  @UseInterceptors(FileInterceptor('profileImage', {
+    storage: diskStorage({
+      destination: './uploads/profile',
+      filename: (req, file, cb) => {
+        const uniqueName = `${Date.now()}-${file.originalname}`;
+        cb(null, uniqueName);
+      },
+    }),
+  }))
   async updateUser(
     @Param('id') id: number,
     @Body() updateUserInfo: UpdateUserInfo,
+    @UploadedFile() file: Express.Multer.File,
     @CurrentUser() currentUser: any,
   ) {
     if (currentUser.role !== UserRole.ADMIN && currentUser.id !== id) {
       throw new ForbiddenException('You can only update your own profile');
     }
-    return this.authservice.updateUser(id, updateUserInfo);
+
+    const imagePath = file ? `uploads/profile/${file.filename}` : undefined;
+    return this.authservice.updateUser(id, updateUserInfo, imagePath);
   }
+
 
   @Delete('delete/:id')
   @Roles(UserRole.ADMIN)

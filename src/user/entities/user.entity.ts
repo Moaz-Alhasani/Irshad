@@ -15,6 +15,7 @@ import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 export enum UserRole {
   JOB_SEEKER = 'job_seeker',
   ADMIN = 'admin',
+  SUPER_ADMIN = 'super_admin'
 }
 
 @Entity({ name: 'users' })
@@ -53,6 +54,9 @@ export class UserEntity {
 
   @OneToMany(() => JobApplyEntity, (app) => app.user)
   applications: JobApplyEntity[];
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  profileImage: string;
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;

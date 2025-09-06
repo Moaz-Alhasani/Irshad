@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, MinLength } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { UserRole } from '../entities/user.entity';
 
 export class UpdateUserInfo {
@@ -17,6 +17,10 @@ export class UpdateUserInfo {
   @IsOptional()
   @MinLength(8)
   password?: string;
+
+  @IsOptional()
+  @IsString()
+  profileImage?: string;
 
   @IsOptional()
   @IsEnum(UserRole)

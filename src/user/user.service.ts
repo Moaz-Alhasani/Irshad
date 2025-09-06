@@ -18,6 +18,8 @@ import { CompanyManagementService } from 'src/company-management/company-managem
 import { retry } from 'rxjs';
 import { JobsService } from 'src/jobs/jobs.service';
 import axios from 'axios';
+import * as fs from 'fs';
+import * as path from 'path';
 
 
 
@@ -36,7 +38,7 @@ export class AuthService {
     @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>
   ) {}
 
-  async register(registerDto: RegisterDto) {
+  async register(registerDto: RegisterDto,imagePath: string | null) {
     const existingUser = await this.userRepository.findOne({
       where: { email: registerDto.email },
     });
@@ -50,6 +52,7 @@ export class AuthService {
       email: registerDto.email,
       password: hashedPassword,
       role: registerDto.role || UserRole.JOB_SEEKER,
+      profileImage: registerDto.profileImage ,
     });
     const savedUser = await this.userRepository.save(newUser);
     const { password, ...userWithoutPassword } = savedUser;
@@ -75,6 +78,31 @@ export class AuthService {
       email: registerDto.email,
       password: hashedPassword,
       role: UserRole.ADMIN,
+    });
+    const savedUser = await this.userRepository.save(newUser);
+    const { password, ...userWithoutPassword } = savedUser;
+    const tokens = this.generateToken(savedUser);
+    return {
+      user: userWithoutPassword,
+      ...tokens,
+      message: 'Admin registration successful',
+    };
+  }
+
+  async createSuperAdmin(registerDto: RegisterDto) {
+    const existingUser = await this.userRepository.findOne({
+      where: { email: registerDto.email },
+    });
+    if (existingUser) {
+      throw new ConflictException('User already exists');
+    }
+    const hashedPassword = await this.hashPassword(registerDto.password);
+    const newUser = this.userRepository.create({
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName,
+      email: registerDto.email,
+      password: hashedPassword,
+      role: UserRole.SUPER_ADMIN,
     });
     const savedUser = await this.userRepository.save(newUser);
     const { password, ...userWithoutPassword } = savedUser;
@@ -142,17 +170,30 @@ export class AuthService {
     return result;
   }
 
- async updateUser(id: number, updateUserInfo: UpdateUserInfo) {
+
+  async updateUser(id: number, updateUserInfo: UpdateUserInfo, imagePath?: string) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) {
       throw new NotFoundException('User not found');
     }
+
     if (updateUserInfo.password) {
       updateUserInfo.password = await bcrypt.hash(updateUserInfo.password, 10);
     }
+
+    // remover the old image if there is new one 
+    if (imagePath && user.profileImage) {
+      const oldImagePath = path.join(process.cwd(), user.profileImage);
+      if (fs.existsSync(oldImagePath)) {
+        fs.unlinkSync(oldImagePath);
+      }
+      updateUserInfo.profileImage = imagePath;
+    }
+
     Object.assign(user, updateUserInfo);
     return this.userRepository.save(user);
   }
+
 
   async deleteUser(id: number) {
     const result = await this.userRepository.delete(id);

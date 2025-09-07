@@ -131,11 +131,11 @@ export class AuthController {
     @CurrentUser() currentUser: any,
     @Body('otp') otp: string,
   ) {
-    return this.authservice.verifyOtp(currentUser, otp);
+    return this.authservice.verifyOtp(currentUser.email, otp);
   }
   @Post('resend-otp')
   @UseGuards(JwtAuthGuard)
-  async resendOtp(@CurrentUser()currentuser:any){
-    return this.authservice.resendOtp(currentuser)
+  async resendOtp(@CurrentUser()currentUser:any){
+    return this.authservice.resendOtp(currentUser.email)
   }
 }

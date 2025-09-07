@@ -94,9 +94,6 @@ export class CompanyManagementService {
     return company.jobs;
   }
 
-  
-
-
 
   private generateToken(company: CompanyEntity) {
     return {

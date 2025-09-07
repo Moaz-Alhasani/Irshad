@@ -38,13 +38,17 @@ interface FlaskSimilarityResponse {
 
 @Injectable()
 export class AuthService {
+    private otpStore: Record<
+    string,
+    { otp: string; expiresAt: Date }
+  > = {};
+
   constructor(
     @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
     private jwtService: JwtService,
     private ComapnyService:CompanyManagementService,
     private readonly jobsService: JobsService,
     @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>,
-    @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
     private MailService:MailService
   ) {}
 
@@ -327,45 +331,51 @@ async getRecommendedJobs(userId: number) {
   }
 
 
-  public async sendOtp(userEmail: string) {
-      const otp = otpGenerator.generate(6, {
-        upperCaseAlphabets: false,
-        lowerCaseAlphabets: false,
-        digits: true,
-        specialChars: false,
-      });
+public async sendOtp(userEmail: string) {
+    const otp = otpGenerator.generate(6, {
+      upperCaseAlphabets: false,
+      lowerCaseAlphabets: false,
+      digits: true,
+      specialChars: false,
+    });
+    this.otpStore[userEmail] = {
+      otp,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), 
+    };
 
-      await this.redisClient.set(`otp:${userEmail}`, otp, 'EX', 300);
+    console.log('OTP generated and stored:', otp);
 
-        await this.MailService.sendEmail({
-          email: userEmail,
-          subject: 'Your OTP Code',
-          message: `Your OTP code is: ${otp}`,
-        });
+    await this.MailService.sendEmail({
+      email: userEmail,
+      subject: 'Your OTP Code',
+      message: `Your OTP code is: ${otp}`,
+    });
 
-      return { message: 'OTP sent to your email' };
+    return { message: 'OTP sent to your email' };
   }
 
-  public async verifyOtp(currentuser: any, otp: string) {
-    const user=await this.userRepository.findOne({
-      where:{
-        email:currentuser.email
-      }
-    })
-    if (!user) {
-      throw new ForbiddenException("there is no user")
-    }
-    const storedOtp = await this.redisClient.get(`otp:${currentuser.email}`);
-    if (storedOtp && storedOtp === otp) {
-      await this.redisClient.del(`otp:${currentuser.email}`); 
-      user.isVerify = true;
-      await this.userRepository.save(user);
-      return { success: true, message: 'OTP verified' };
-    }
-    return { success: false, message: 'Invalid or expired OTP' };
-  }
 
-  public async resendOtp(currentuser: any) {
-    return this.sendOtp(currentuser.email);
+   public async verifyOtp(userEmail: string, otp: string) {
+  const record = this.otpStore[userEmail];
+  if (!record) return { success: false, message: 'OTP not found' };
+  const now = new Date();
+  if (record.expiresAt < now) {
+    delete this.otpStore[userEmail];
+    return { success: false, message: 'OTP expired' };
+  }
+  if (record.otp === otp) {
+    delete this.otpStore[userEmail];
+    const user = await this.userRepository.findOne({ where: { email: userEmail } });
+    if (!user) throw new ForbiddenException('User not found');
+    user.isVerify = true;
+    await this.userRepository.save(user);
+    return { success: true, message: 'OTP verified' };
+  }
+  return { success: false, message: 'Invalid OTP' };
+}
+
+
+  public async resendOtp(userEmail: string) {
+    return this.sendOtp(userEmail);
   }
 }

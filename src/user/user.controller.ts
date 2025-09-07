@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
-
+import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { Roles } from './decorators/roles.decorators';
 import { UserRole } from './entities/user.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -125,14 +125,52 @@ export class AuthController {
       return this.authservice.getRecommendedJobs(currentUser.id);
   }
 
-  @Post('verify-otp')
+  @Post('verify-email')
   @UseGuards(JwtAuthGuard)
-  async verifyOtp(
+  async verifyOtpforemail (
     @CurrentUser() currentUser: any,
     @Body('otp') otp: string,
   ) {
-    return this.authservice.verifyOtp(currentUser.email, otp);
+    return this.authservice.verifyOtpForEmail(currentUser.email, otp);
   }
+
+  @Post('forget-password')
+  async forgetPassword(@Body('email') email: string) {
+    return this.authservice.forgetPassword(email);
+  }
+
+  @Post('verify-otp-password')
+  async verifyOtpForPassword(
+    @Body('otp') otp: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authservice.verifyOtpForPassword(otp);
+    if (!result.success) {
+      return result; 
+    }
+    res.cookie('resetToken', result.resetToken, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+    });
+    return { success: true, message: 'OTP verified. You can now submit new password.' };
+  }
+
+   @Post('update-password')
+  async updatePassword(
+    @Body('newPassword') newPassword: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const resetToken = req.cookies?.resetToken;
+    if (!resetToken) {
+      throw new ForbiddenException('Reset token missing. Verify OTP first.');
+    }
+    const result = await this.authservice.updatePassword(newPassword, resetToken);
+    res.clearCookie('resetToken');
+    return result;
+  }
+
   @Post('resend-otp')
   @UseGuards(JwtAuthGuard)
   async resendOtp(@CurrentUser()currentUser:any){

@@ -4,6 +4,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -18,8 +19,15 @@ import { CompanyManagementService } from 'src/company-management/company-managem
 import { retry } from 'rxjs';
 import { JobsService } from 'src/jobs/jobs.service';
 import axios from 'axios';
+import Redis from 'ioredis';
+import * as otpGenerator from 'otp-generator';
+import { MailService } from './gobal/MailService';
+import { CurrentUser } from './decorators/current_user.decorators';
 import * as fs from 'fs';
 import * as path from 'path';
+
+
+
 
 
 
@@ -35,7 +43,9 @@ export class AuthService {
     private jwtService: JwtService,
     private ComapnyService:CompanyManagementService,
     private readonly jobsService: JobsService,
-    @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>
+    @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>,
+    @Inject('REDIS_CLIENT') private readonly redisClient: Redis,
+    private MailService:MailService
   ) {}
 
   async register(registerDto: RegisterDto,imagePath: string | null) {
@@ -54,7 +64,9 @@ export class AuthService {
       role: registerDto.role || UserRole.JOB_SEEKER,
       profileImage: registerDto.profileImage ,
     });
+
     const savedUser = await this.userRepository.save(newUser);
+    await this.sendOtp(newUser.email)
     const { password, ...userWithoutPassword } = savedUser;
     const tokens = this.generateToken(savedUser);
     return {
@@ -312,5 +324,48 @@ async getRecommendedJobs(userId: number) {
 
   public async hashPassword(password: string): Promise<string> {
     return await bcrypt.hash(password, 10);
+  }
+
+
+  public async sendOtp(userEmail: string) {
+      const otp = otpGenerator.generate(6, {
+        upperCaseAlphabets: false,
+        lowerCaseAlphabets: false,
+        digits: true,
+        specialChars: false,
+      });
+
+      await this.redisClient.set(`otp:${userEmail}`, otp, 'EX', 300);
+
+        await this.MailService.sendEmail({
+          email: userEmail,
+          subject: 'Your OTP Code',
+          message: `Your OTP code is: ${otp}`,
+        });
+
+      return { message: 'OTP sent to your email' };
+  }
+
+  public async verifyOtp(currentuser: any, otp: string) {
+    const user=await this.userRepository.findOne({
+      where:{
+        email:currentuser.email
+      }
+    })
+    if (!user) {
+      throw new ForbiddenException("there is no user")
+    }
+    const storedOtp = await this.redisClient.get(`otp:${currentuser.email}`);
+    if (storedOtp && storedOtp === otp) {
+      await this.redisClient.del(`otp:${currentuser.email}`); 
+      user.isVerify = true;
+      await this.userRepository.save(user);
+      return { success: true, message: 'OTP verified' };
+    }
+    return { success: false, message: 'Invalid or expired OTP' };
+  }
+
+  public async resendOtp(currentuser: any) {
+    return this.sendOtp(currentuser.email);
   }
 }

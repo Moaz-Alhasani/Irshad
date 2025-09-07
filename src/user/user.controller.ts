@@ -15,6 +15,7 @@ import { diskStorage } from 'multer';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 
+
 @Controller('auth')
 export class AuthController {
   constructor(private authservice: AuthService) {}
@@ -122,5 +123,19 @@ export class AuthController {
   @Get('recommended-jobs')
   async JobsRecommendtion(@CurrentUser() currentUser: any){
       return this.authservice.getRecommendedJobs(currentUser.id);
+  }
+
+  @Post('verify-otp')
+  @UseGuards(JwtAuthGuard)
+  async verifyOtp(
+    @CurrentUser() currentUser: any,
+    @Body('otp') otp: string,
+  ) {
+    return this.authservice.verifyOtp(currentUser, otp);
+  }
+  @Post('resend-otp')
+  @UseGuards(JwtAuthGuard)
+  async resendOtp(@CurrentUser()currentuser:any){
+    return this.authservice.resendOtp(currentuser)
   }
 }

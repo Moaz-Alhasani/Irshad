@@ -7,7 +7,7 @@ import {
   Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserEntity, UserRole } from './entities/user.entity';
@@ -433,7 +433,19 @@ public async sendOtp(userEmail: string) {
     return checkOtp; 
   }
 
-
+  public async SearchOfUser(username:string):Promise<UserEntity>{
+    const cleanUsername = username.trim().replace(/['"]+/g, '');
+    const user=await this.userRepository.findOne({
+      where:{
+          firstName: ILike(`%${cleanUsername}%`) ,
+          lastName: ILike(`%${cleanUsername}%`) ,
+      }
+    })
+    if(!user){
+      throw new NotFoundException(`${username} is not exist`)
+    }
+    return user
+  }
 
   public async resendOtp(userEmail: string) {
     return this.sendOtp(userEmail);

@@ -156,7 +156,7 @@ export class AuthController {
     return { success: true, message: 'OTP verified. You can now submit new password.' };
   }
 
-   @Post('update-password')
+  @Post('update-password')
   async updatePassword(
     @Body('newPassword') newPassword: string,
     @Req() req: Request,
@@ -175,5 +175,10 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async resendOtp(@CurrentUser()currentUser:any){
     return this.authservice.resendOtp(currentUser.email)
+  }
+
+  @Post('searchuser')
+  async searchofuser(@Body()username:string){
+    return this.authservice.SearchOfUser(username)
   }
 }

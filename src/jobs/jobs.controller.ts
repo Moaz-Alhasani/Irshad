@@ -23,6 +23,7 @@ import { Roles } from 'src/user/decorators/roles.decorators';
 import { UserRole } from 'src/user/entities/user.entity';
 import { RolesGuard } from 'src/user/guards/roles-guard';
 import { CompanyRole } from 'src/company-management/entities/company-management.entity';
+import { SearchJobDto } from './dto/job_filter_dto';
 
 export function ImageFileInterceptor(fieldName: string) {
   return UseInterceptors(
@@ -120,8 +121,8 @@ export class JobsController {
   }
 
   @Get('search')
-  async searchjobs(@Query('keyword') keyword:string){
-    return this.jobsService.serachjobs(keyword)
+  async searchjobs(@Body()searchJobDto:SearchJobDto){
+    return this.jobsService.searchJobs(searchJobDto)
   }
 }
 

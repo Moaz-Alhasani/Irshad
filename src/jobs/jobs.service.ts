@@ -7,6 +7,7 @@ import { ILike, Like, Repository } from 'typeorm';
 import { UserRole } from 'src/user/entities/user.entity';
 import { CompanyRole } from 'src/company-management/entities/company-management.entity';
 import axios from 'axios';
+import { SearchJobDto } from './dto/job_filter_dto';
 
 interface FlaskEmbeddingResponse {
   embedding: number[];
@@ -112,18 +113,30 @@ export class JobsService {
 
 
 
-  async serachjobs(keyword:string):Promise<JobEntity[]>{
-    const cleanKeyword = keyword.trim().replace(/['"]+/g, "");
-    const AllJobjs=await this.jobRepository.find({
-      where:{
-        title:ILike(`%${cleanKeyword}%`)
+  async searchJobs(searchJobDto: SearchJobDto): Promise<JobEntity[]> {
+    const { title, location, jobType } = searchJobDto;
+
+    const whereOptions: any = {};
+
+    if (title) {
+      whereOptions['title'] = ILike(`%${title.trim().replace(/['"]+/g, "")}%`);
+    }
+
+    if (location) {
+      whereOptions['location'] = ILike(`%${location.trim().replace(/['"]+/g, "")}%`);
+    }
+
+    if (jobType) {
+      whereOptions['employmentType'] = jobType; 
+    }
+    const allJobs = await this.jobRepository.find({
+      where: whereOptions,
+      relations: ['company'],
+      order: {
+        createdAt: 'DESC',
       },
-      relations:['company'],
-      order:{
-        'createdAt':'DESC'
-      }
-    })
-    
-    return AllJobjs
+    });
+    return allJobs;
   }
+
 }

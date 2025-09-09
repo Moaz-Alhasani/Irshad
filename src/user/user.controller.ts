@@ -32,17 +32,54 @@ export class AuthController {
       },
     }),
   }))
-  register(
+  async register(
     @Body() registerDto: RegisterDto,
-    @UploadedFile() file: Express.Multer.File
+    @UploadedFile() file: Express.Multer.File,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    const imagePath = file ? `uploads/profile/${file.filename}` : null;
-    return this.authservice.register(registerDto, imagePath);
+      const imagePath = file ? `uploads/profile/${file.filename}` : null;
+      const { user, accessToken, refreshToken } =  await this.authservice.register(registerDto, imagePath);
+
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 1000 * 60 * 60,
+    });
+
+    return {
+      user,
+      accessToken,
+      message: 'Registration successful',
+    };
   }
 
   @Post('login')
-  login(@Body() loginDto: LoginDto) {
-    return this.authservice.login(loginDto);
+  async login(@Body() loginDto: LoginDto,@Res({ passthrough: true }) res: Response) {
+    const { user, accessToken, refreshToken } = await this.authservice.login(loginDto);
+    res.cookie('accessToken', accessToken, {
+    httpOnly: true, 
+    secure: true,   
+    sameSite: 'strict',
+    maxAge: 1000 * 60 * 60, 
+  });
+    return {
+      user,
+      accessToken,
+      message: 'Login successful',
+    };
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  async logout(
+    @Res({ passthrough: true }) res: Response,
+    @CurrentUser() user: any,
+  ) {
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+
+    return { message: `Logout successful for user ${user.email}` };
   }
 
   @Post('refresh')
@@ -148,11 +185,13 @@ export class AuthController {
     if (!result.success) {
       return result; 
     }
-    res.cookie('resetToken', result.resetToken, {
-      httpOnly: true,
-      sameSite: 'strict',
-      secure: process.env.NODE_ENV === 'production',
-    });
+    if ('resetToken' in result){
+      res.cookie('resetToken', result.resetToken , {
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+      });
+    }
     return { success: true, message: 'OTP verified. You can now submit new password.' };
   }
 

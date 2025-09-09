@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, ParseIntPipe } from '@nestjs/common';
 import { CompanyManagementService } from './company-management.service';
 import { CreateCompanyManagementDto } from './dto/create-company-management.dto';
 import { UpdateCompanyManagementDto } from './dto/update-company-management.dto';
@@ -31,4 +31,17 @@ export class CompanyManagementController {
     return this.companyManagementService.getCompanyJobs(companyId);
   }
 
+  @Get('company-jobs-number')
+  @UseGuards(JwtAuthGuard)
+  async getNumberOfCompanyJobs(@CurrentUser()company:any){
+    return this.companyManagementService.getNumberofCompanyJobs(company)
+  }
+
+
+  @Get(':jobId/applicants/count')
+  @UseGuards(JwtAuthGuard)
+  async getApplicantsCountOfJobs(@Param('jobId',ParseIntPipe)jobid:number,
+                                  @CurrentUser()company:any){
+                                    return this.companyManagementService.numberofApplyForJobs(jobid,company)
+                                  }
 }

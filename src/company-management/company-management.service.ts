@@ -8,6 +8,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { AuthService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { LoginCompanyDto } from './dto/loginCompany.dto';
+import { JobEntity } from 'src/jobs/entities/job.entity';
 
 @Injectable()
 export class CompanyManagementService {
@@ -18,6 +19,8 @@ export class CompanyManagementService {
 
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
+
+    @InjectRepository(JobEntity) private jobsRepository:Repository<JobEntity>,
 
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
@@ -94,6 +97,44 @@ export class CompanyManagementService {
     return company.jobs;
   }
 
+  public async getNumberofCompanyJobs(company:any):Promise<Number>{
+    const companyjobs=await this.jobsRepository.count({
+      where:{
+          company: {
+            id: company.id,
+      }
+      }
+    })
+    return companyjobs
+  }
+
+  public async numberofApplyForJobs(jobid:number,company:any){
+    const job=await this.jobsRepository.findOne({
+      where:{
+        id:jobid
+      },relations:['applications']
+    })
+    if(!job){
+      throw new NotFoundException(`job not found`)
+    }
+    if (job.company.id!==company.id){
+      throw new ForbiddenException(`you don't have the right `)
+    }
+
+    const jobWithApplications = await this.jobsRepository
+      .createQueryBuilder('job')
+      .leftJoinAndSelect('job.applications', 'application')
+      .leftJoinAndSelect('application.user', 'user')
+      .where('job.id = :jobId', { jobId: jobid })
+      .orderBy('application.ranking_score', 'DESC')
+      .getOne();
+
+    return {
+      applicants: jobWithApplications?.applications || [],
+      totalApplicants: jobWithApplications?.applications.length || 0
+    };
+
+  }
 
   private generateToken(company: CompanyEntity) {
     return {

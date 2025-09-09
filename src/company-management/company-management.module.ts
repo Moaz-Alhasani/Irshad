@@ -8,6 +8,7 @@ import { AuthModule } from 'src/user/user.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
+import { JobsModule } from 'src/jobs/jobs.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
     forwardRef(() => AuthModule),
       PassportModule,
       JwtModule.register({}), 
+      JobsModule
   ],
   controllers: [CompanyManagementController],
   providers: [CompanyManagementService],

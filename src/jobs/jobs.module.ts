@@ -10,6 +10,6 @@ import { CompanyManagementModule } from 'src/company-management/company-manageme
   imports:[TypeOrmModule.forFeature([JobEntity,CompanyEntity]),forwardRef(() => CompanyManagementModule)],
   controllers: [JobsController],
   providers: [JobsService],
-  exports:[JobsService]
+  exports:[JobsService,JobsModule]
 })
 export class JobsModule {}

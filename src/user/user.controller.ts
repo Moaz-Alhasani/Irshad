@@ -123,4 +123,32 @@ export class AuthController {
   async JobsRecommendtion(@CurrentUser() currentUser: any){
       return this.authservice.getRecommendedJobs(currentUser.id);
   }
+
+  @Put('status/:id')
+  @UseGuards(JwtAuthGuard)
+  async disableAccount(
+    @Param('id') id: number,
+    @CurrentUser() currentUser: any,
+  ) {
+    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== id) {
+      throw new ForbiddenException('You can only update your own status');
+    }
+
+    return this.authservice.disable(id);
+  }
+  
+  @Put('status/:id')
+  @UseGuards(JwtAuthGuard)
+  async unDisableAccount(
+    @Param('id') id: number,
+    @CurrentUser() currentUser: any,
+  ) {
+    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== id) {
+      throw new ForbiddenException('You can only update your own status');
+    }
+
+    return this.authservice.undisable(id);
+  }
+
+  
 }

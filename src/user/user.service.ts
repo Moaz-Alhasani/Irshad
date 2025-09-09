@@ -234,10 +234,10 @@ export class AuthService {
 
     const { password, ...userWithoutPassword } = user;
     return userWithoutPassword;
-}
+  }
 
 
-async getRecommendedJobs(userId: number) {
+  async getRecommendedJobs(userId: number) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
       relations: ['resumes'],
@@ -274,6 +274,30 @@ async getRecommendedJobs(userId: number) {
     return sortedJobs;
   }
 
+
+  // the settings for user 
+  // updateUserStatus 
+  async undisable (userId :number){
+    const user = await this.userRepository.findOne({
+      where:{id:userId}
+    })
+    if (!user) {
+      throw new NotFoundException('User not found')
+    }
+    user.isActive = true;
+    this.userRepository.save(user);
+  }
+
+  async disable (userId :number){
+    const user = await this.userRepository.findOne({
+      where:{id:userId}
+    })
+    if (!user) {
+      throw new NotFoundException('User not found')
+    }
+    user.isActive = false;
+    this.userRepository.save(user);
+  }
 
 
   private generateToken(user: UserEntity) {

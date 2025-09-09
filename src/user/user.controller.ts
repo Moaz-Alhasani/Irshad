@@ -1,5 +1,5 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
-
+import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Request, Response } from 'express';
 import { Roles } from './decorators/roles.decorators';
 import { UserRole } from './entities/user.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -13,6 +13,7 @@ import { jwtStrategy } from './strategies/jwt.strategy';
 import { extname } from 'path';
 import { diskStorage } from 'multer';
 import { FileInterceptor } from '@nestjs/platform-express';
+
 
 
 @Controller('auth')
@@ -31,17 +32,54 @@ export class AuthController {
       },
     }),
   }))
-  register(
+  async register(
     @Body() registerDto: RegisterDto,
-    @UploadedFile() file: Express.Multer.File
+    @UploadedFile() file: Express.Multer.File,
+    @Res({ passthrough: true }) res: Response,
   ) {
-    const imagePath = file ? `uploads/profile/${file.filename}` : null;
-    return this.authservice.register(registerDto, imagePath);
+      const imagePath = file ? `uploads/profile/${file.filename}` : null;
+      const { user, accessToken, refreshToken } =  await this.authservice.register(registerDto, imagePath);
+
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 1000 * 60 * 60,
+    });
+
+    return {
+      user,
+      accessToken,
+      message: 'Registration successful',
+    };
   }
 
   @Post('login')
-  login(@Body() loginDto: LoginDto) {
-    return this.authservice.login(loginDto);
+  async login(@Body() loginDto: LoginDto,@Res({ passthrough: true }) res: Response) {
+    const { user, accessToken, refreshToken } = await this.authservice.login(loginDto);
+    res.cookie('accessToken', accessToken, {
+    httpOnly: true, 
+    secure: true,   
+    sameSite: 'strict',
+    maxAge: 1000 * 60 * 60, 
+  });
+    return {
+      user,
+      accessToken,
+      message: 'Login successful',
+    };
+  }
+
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  async logout(
+    @Res({ passthrough: true }) res: Response,
+    @CurrentUser() user: any,
+  ) {
+    res.clearCookie('accessToken');
+    res.clearCookie('refreshToken');
+
+    return { message: `Logout successful for user ${user.email}` };
   }
 
   @Post('refresh')
@@ -124,7 +162,66 @@ export class AuthController {
       return this.authservice.getRecommendedJobs(currentUser.id);
   }
 
-  @Put('status/:id')
+  @Post('verify-email')
+  @UseGuards(JwtAuthGuard)
+  async verifyOtpforemail (
+    @CurrentUser() currentUser: any,
+    @Body('otp') otp: string,
+  ) {
+    return this.authservice.verifyOtpForEmail(currentUser.email, otp);
+  }
+
+  @Post('forget-password')
+  async forgetPassword(@Body('email') email: string) {
+    return this.authservice.forgetPassword(email);
+  }
+
+  @Post('verify-otp-password')
+  async verifyOtpForPassword(
+    @Body('otp') otp: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authservice.verifyOtpForPassword(otp);
+    if (!result.success) {
+      return result; 
+    }
+    if ('resetToken' in result){
+      res.cookie('resetToken', result.resetToken , {
+        httpOnly: true,
+        sameSite: 'strict',
+        secure: process.env.NODE_ENV === 'production',
+      });
+    }
+    return { success: true, message: 'OTP verified. You can now submit new password.' };
+  }
+
+  @Post('update-password')
+  async updatePassword(
+    @Body('newPassword') newPassword: string,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const resetToken = req.cookies?.resetToken;
+    if (!resetToken) {
+      throw new ForbiddenException('Reset token missing. Verify OTP first.');
+    }
+    const result = await this.authservice.updatePassword(newPassword, resetToken);
+    res.clearCookie('resetToken');
+    return result;
+  }
+
+  @Post('resend-otp')
+  @UseGuards(JwtAuthGuard)
+  async resendOtp(@CurrentUser()currentUser:any){
+    return this.authservice.resendOtp(currentUser.email)
+  }
+
+  @Post('searchuser')
+  async searchofuser(@Body()username:string){
+    return this.authservice.SearchOfUser(username)
+  }
+
+  @Put('disable/:id')
   @UseGuards(JwtAuthGuard)
   async disableAccount(
     @Param('id') id: number,
@@ -137,7 +234,7 @@ export class AuthController {
     return this.authservice.disable(id);
   }
   
-  @Put('status/:id')
+  @Put('undisable/:id')
   @UseGuards(JwtAuthGuard)
   async unDisableAccount(
     @Param('id') id: number,

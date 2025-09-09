@@ -60,7 +60,8 @@ export class UserEntity {
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;
-
+  @Column({type: 'boolean', default: false })
+  isVerify:boolean
   @CreateDateColumn()
   createdAt: Date;
 }

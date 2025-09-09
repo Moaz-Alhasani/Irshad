@@ -4,9 +4,10 @@ import {
   UnauthorizedException,
   ForbiddenException,
   NotFoundException,
+  Inject,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { ILike, Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { UserEntity, UserRole } from './entities/user.entity';
@@ -18,9 +19,13 @@ import { CompanyManagementService } from 'src/company-management/company-managem
 import { retry } from 'rxjs';
 import { JobsService } from 'src/jobs/jobs.service';
 import axios from 'axios';
+import Redis from 'ioredis';
+import * as otpGenerator from 'otp-generator';
+import { MailService } from './gobal/MailService';
+import { CurrentUser } from './decorators/current_user.decorators';
 import * as fs from 'fs';
 import * as path from 'path';
-
+import { v4 as uuidv4 } from 'uuid';
 
 
 interface FlaskSimilarityResponse {
@@ -30,12 +35,19 @@ interface FlaskSimilarityResponse {
 
 @Injectable()
 export class AuthService {
+    private otpStore: Record<
+    string,
+    { otp: string; expiresAt: Date }
+    > = {};
+    private resetTokens: Record<string, { email: string; expiresAt: number }> = {};
+
   constructor(
     @InjectRepository(UserEntity) private userRepository: Repository<UserEntity>,
     private jwtService: JwtService,
     private ComapnyService:CompanyManagementService,
     private readonly jobsService: JobsService,
-    @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>
+    @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>,
+    private MailService:MailService
   ) {}
 
   async register(registerDto: RegisterDto,imagePath: string | null) {
@@ -54,7 +66,9 @@ export class AuthService {
       role: registerDto.role || UserRole.JOB_SEEKER,
       profileImage: registerDto.profileImage ,
     });
+
     const savedUser = await this.userRepository.save(newUser);
+    await this.sendOtp(newUser.email)
     const { password, ...userWithoutPassword } = savedUser;
     const tokens = this.generateToken(savedUser);
     return {
@@ -336,5 +350,128 @@ export class AuthService {
 
   public async hashPassword(password: string): Promise<string> {
     return await bcrypt.hash(password, 10);
+  }
+
+
+public async sendOtp(userEmail: string) {
+    const otp = otpGenerator.generate(6, {
+      upperCaseAlphabets: false,
+      lowerCaseAlphabets: false,
+      digits: true,
+      specialChars: false,
+    });
+    this.otpStore[userEmail] = {
+      otp,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000), 
+    };
+
+    console.log('OTP generated and stored:', otp);
+
+    await this.MailService.sendEmail({
+      email: userEmail,
+      subject: 'Your OTP Code',
+      message: `Your OTP code is: ${otp}`,
+    });
+
+    return { message: 'OTP sent to your email' };
+  }
+
+
+  public async forgetPassword(userEmail: string) {
+    const user = await this.userRepository.findOne({ where: { email: userEmail } });
+    if (!user) {
+      throw new ForbiddenException('User not found');
+    }
+    return await this.sendOtp(userEmail);
+  }
+
+  public async verifyOtpForPassword(otp: string) {
+    const userEmail = Object.keys(this.otpStore).find(
+      email => this.otpStore[email]?.otp === otp,
+    );
+    if (!userEmail) {
+      return { success: false, message: 'Invalid OTP' };
+    }
+    const checkOtp = this.verifyOtp(userEmail, otp);
+    if (checkOtp.success) {
+      const resetToken = uuidv4();
+      const expiresAt = Date.now() + 15 * 60 * 1000; 
+
+      this.resetTokens[resetToken] = { email: userEmail, expiresAt };
+      return {
+        success: true,
+        message: 'OTP verified, you can now reset your password',
+        resetToken,
+      };
+    }
+    return checkOtp;
+  }
+
+  public async updatePassword(newPassword: string, resetToken: string) {
+    const tokenRecord = this.resetTokens[resetToken];
+    if (!tokenRecord || tokenRecord.expiresAt < Date.now()) {
+      throw new ForbiddenException('Invalid or expired reset token');
+    }
+    const userEmail = tokenRecord.email;
+    const user = await this.userRepository.findOne({ where: { email: userEmail } });
+    if (!user) {
+      throw new ForbiddenException('User not found');
+    }
+    const hashedPassword = await this.hashPassword(newPassword);
+    user.password = hashedPassword;
+    await this.userRepository.save(user);
+    delete this.resetTokens[resetToken];
+    return { success: true, message: 'Password updated successfully' };
+  }
+
+
+
+  public verifyOtp(userEmail: string, otp: string) {
+    const record = this.otpStore[userEmail];
+    if (!record) {
+      return { success: false, message: 'OTP not found' };
+    }
+    const now = new Date();
+    if (record.expiresAt < now) {
+      delete this.otpStore[userEmail];
+      return { success: false, message: 'OTP expired' };
+    }
+    if (record.otp === otp) {
+      delete this.otpStore[userEmail];
+      return { success: true, message: 'OTP verified' };
+    }
+    return { success: false, message: 'Invalid OTP' };
+  }
+
+  public async verifyOtpForEmail(userEmail: string, otp: string) {
+    const checkOtp = this.verifyOtp(userEmail, otp);
+    if (checkOtp.success) {
+      const user = await this.userRepository.findOne({ where: { email: userEmail } });
+      if (!user) {
+        throw new ForbiddenException('User not found');
+      }
+      user.isVerify = true;
+      await this.userRepository.save(user);
+      return { success: true, message: 'OTP verified and user updated' };
+    }
+    return checkOtp; 
+  }
+
+  public async SearchOfUser(username:string):Promise<UserEntity>{
+    const cleanUsername = username.trim().replace(/['"]+/g, '');
+    const user=await this.userRepository.findOne({
+      where:{
+          firstName: ILike(`%${cleanUsername}%`) ,
+          lastName: ILike(`%${cleanUsername}%`) ,
+      }
+    })
+    if(!user){
+      throw new NotFoundException(`${username} is not exist`)
+    }
+    return user
+  }
+
+  public async resendOtp(userEmail: string) {
+    return this.sendOtp(userEmail);
   }
 }

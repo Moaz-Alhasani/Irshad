@@ -37,6 +37,7 @@ import { JobApplyEntity } from './jobapply/entities/jobApplyEntitt';
     JobsModule,
     ResumesModule,
     JobapplyModule,
+
   ],
   controllers: [AppController],
   providers: [AppService],

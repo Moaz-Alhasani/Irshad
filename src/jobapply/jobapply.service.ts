@@ -26,78 +26,104 @@ export class JobapplyService {
     @InjectRepository(UserEntity) private userEntity: Repository<UserEntity>,
   ) {}
 
-  async JobApply(jobid: number, currentuser: any, createjobapplydto: CreateJobApplyDto) {
-    const jobExists = await this.jobExist(jobid);
-    if (!jobExists) {
-      throw new ForbiddenException(`Job with id ${jobid} does not exist`);
-    }
+  
 
-    const olduser = await this.userEntity.findOne({
-      where: { id: currentuser.id },
-      relations: ['resumes'],
-    });
-    if (!olduser) {
-      throw new ForbiddenException(`User with id ${currentuser.id} does not exist`);
-    }
-    if (!olduser?.resumes || olduser.resumes.length === 0) {
-      throw new ForbiddenException(`User does not have any resumes`);
-    }
 
-    const application = await this.jobApplyEntity.findOne({
-      where: {
-        job: { id: jobid },
-        user: { id: currentuser.id },
-      },
-      relations: ['job', 'user'],
-    });
+async JobApply(jobid: number, currentuser: any, createjobapplydto: CreateJobApplyDto) {
+  const jobExists = await this.jobExist(jobid);
+  if (!jobExists) {
+    throw new ForbiddenException(`Job with id ${jobid} does not exist`);
+  }
 
-    if (application?.application_status === ApplicationStatus.PENDING) {
-      throw new ForbiddenException('You already have a pending application for this job');
-    }
-    if (application?.application_status === ApplicationStatus.ACCEPTED) {
-      throw new ForbiddenException('You have already been accepted for this job');
-    }
+  const olduser = await this.userEntity.findOne({
+    where: { id: currentuser.id },
+    relations: ['resumes'],
+  });
+  if (!olduser) {
+    throw new ForbiddenException(`User with id ${currentuser.id} does not exist`);
+  }
+  if (!olduser?.resumes || olduser.resumes.length === 0) {
+    throw new ForbiddenException(`User does not have any resumes`);
+  }
 
-    const applied = this.jobApplyEntity.create({
-      user: { id: currentuser.id },
+  const application = await this.jobApplyEntity.findOne({
+    where: {
       job: { id: jobid },
-      resume: olduser.resumes[0],
-    });
-    const savedApp = await this.jobApplyEntity.save(applied);
+      user: { id: currentuser.id },
+    },
+    relations: ['job', 'user'],
+  });
 
-    const resume = olduser.resumes[0];
-    const job = jobExists;
+  if (application?.application_status === ApplicationStatus.PENDING) {
+    throw new ForbiddenException('You already have a pending application for this job');
+  }
+  if (application?.application_status === ApplicationStatus.ACCEPTED) {
+    throw new ForbiddenException('You have already been accepted for this job');
+  }
+  const applied = this.jobApplyEntity.create({
+    user: { id: currentuser.id },
+    job: { id: jobid },
+    resume: olduser.resumes[0],
+  });
+  const savedApp = await this.jobApplyEntity.save(applied);
 
-    const salaryPayload = {
-      experience_years: resume.experience_years,
-      skills: resume.extracted_skills.join(', '),
-      education: resume.education.join(', '),
-      role: job.title || 'AI',
-      work_type: job.employmentType || 'Remote',
-    };
-    const salaryResp = await axios.post<SalaryResponse>(
+  const resume = olduser.resumes[0];
+  const job = jobExists;
+
+  const salaryPayload = {
+    experience_years: resume.experience_years,
+    skills: resume.extracted_skills.join(', '),
+    education: resume.education.join(', '),
+    role: job.title || 'AI',
+    work_type: job.employmentType || 'Remote',
+  };
+  const salaryResp = await axios.post<SalaryResponse>(
     'http://localhost:5000/predict-salary',
     salaryPayload,
-    );
+  );
+  const jobs = await this.jobEntity.find({ select: ['id', 'embedding'] });
+  const similarityPayload = {
+    resume_embedding: resume.embedding,
+    jobs: jobs.map((j) => ({ id: j.id, embedding: j.embedding })),
+  };
 
-    const jobs = await this.jobEntity.find({ select: ['id', 'embedding'] });
-    const similarityPayload = {
-      resume_embedding: resume.embedding,
-      jobs: jobs.map((j) => ({ id: j.id, embedding: j.embedding })),
-    };
-
-    const similarityResp = await axios.post<SimilarityScore[]>(
+  const similarityResp = await axios.post<SimilarityScore[]>(
     'http://localhost:5000/get-similarity',
     similarityPayload,
-    );
+  );
 
-    savedApp.estimated_salary = salaryResp.data.estimated_salary;
-    const simScore =
-      similarityResp.data.find((s) => s.jobId === jobid)?.score || null;
-    savedApp.similarity_score = simScore;
+  savedApp.estimated_salary = salaryResp.data.estimated_salary;
+  const simScore =
+    similarityResp.data.find((s) => s.jobId === jobid)?.score || 0;
+  savedApp.similarity_score = simScore;
 
-    return await this.jobApplyEntity.save(savedApp);
-  }
+  const normalize = (value: number, max: number): number => {
+    return Math.min(value / max, 1);
+  };
+
+  const experienceNorm = normalize(resume.experience_years || 0, 10); 
+  const skillsMatch = job.requiredSkills
+    ? resume.extracted_skills.filter((s) =>
+        job.requiredSkills.includes(s),
+      ).length / job.requiredSkills.length
+    : 0;
+  const educationLevel = resume.education?.[0]?.toLowerCase() || '';
+  let educationNorm = 0;
+  if (educationLevel.includes('phd')) educationNorm = 1;
+  else if (educationLevel.includes('master')) educationNorm = 0.8;
+  else if (educationLevel.includes('bachelor')) educationNorm = 0.6;
+  else educationNorm = 0.4;
+
+  const rankingScore =
+    simScore * 0.6 +
+    experienceNorm * 0.2 +
+    skillsMatch * 0.1 +
+    educationNorm * 0.1;
+
+  savedApp.ranking_score = rankingScore;
+
+  return await this.jobApplyEntity.save(savedApp);
+}
 
 
 

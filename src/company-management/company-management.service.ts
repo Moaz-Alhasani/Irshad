@@ -112,7 +112,7 @@ export class CompanyManagementService {
     const job=await this.jobsRepository.findOne({
       where:{
         id:jobid
-      },relations:['applications']
+      },relations:['applications','company']
     })
     if(!job){
       throw new NotFoundException(`job not found`)

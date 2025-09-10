@@ -1,4 +1,4 @@
-import { Controller, Post, UseInterceptors, UploadedFile, UseGuards } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, UseGuards, Param, Put, Delete } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResumesService } from './resumes.service';
 import { diskStorage } from 'multer';
@@ -38,5 +38,41 @@ export class ResumesController {
     @CurrentUser() user: any,
   ) {
     return this.resumesService.sendToFlaskAndSave(file.path, user.id);
+  }
+
+
+
+  @Roles(UserRole.JOB_SEEKER)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Put(':id')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const uploadPath = join(__dirname, '../../uploads/cv');
+          if (!existsSync(uploadPath)) mkdirSync(uploadPath, { recursive: true });
+          cb(null, uploadPath);
+        },
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+          cb(null, uniqueSuffix + extname(file.originalname));
+        },
+      }),
+    }),
+  )
+  async updateCV(
+    @Param('id') id: number,
+    @UploadedFile() file: Express.Multer.File,
+    @CurrentUser() user: any,
+  ) {
+    return this.resumesService.updateResume(id, file.path, user.id);
+  }
+
+
+  @Roles(UserRole.JOB_SEEKER)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Delete(':id')
+  async deleteCV(@Param('id') id: number, @CurrentUser() user: any) {
+    return this.resumesService.deleteResume(id, user.id);
   }
 }

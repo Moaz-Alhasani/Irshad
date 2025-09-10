@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
 import { ResumeEntity } from './entities/resume.entity';
 import axios from 'axios';
+import { existsSync, unlinkSync } from 'fs';
 
 interface FlaskResponse {
   parser_output?: {
@@ -73,6 +74,29 @@ async sendToFlaskAndSave(filePath: string, userId: number) {
       console.error("Error sending to Flask:", err.message);
       throw err;
     }
+  }
+
+
+   async updateResume(id: number, newFilePath: string, userId: number) {
+    const resume = await this.resumeRepo.findOne({ where: { id }, relations: ['user'] });
+    if (!resume) throw new NotFoundException('Resume not found');
+    if (resume.user.id !== userId) throw new ForbiddenException('Not your resume');
+    if (existsSync(resume.file_path)) {
+      unlinkSync(resume.file_path);
+    }
+    await this.resumeRepo.remove(resume);
+    return this.sendToFlaskAndSave(newFilePath, userId);
+  }
+
+  async deleteResume(id: number, userId: number) {
+    const resume = await this.resumeRepo.findOne({ where: { id }, relations: ['user'] });
+    if (!resume) throw new NotFoundException('Resume not found');
+    if (resume.user.id !== userId) throw new ForbiddenException('Not your resume');
+    if (existsSync(resume.file_path)) {
+      unlinkSync(resume.file_path);
+    }
+    await this.resumeRepo.remove(resume);
+    return { success: true, message: 'Resume deleted successfully' };
   }
 }
 

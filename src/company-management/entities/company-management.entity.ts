@@ -44,6 +44,9 @@ export class CompanyEntity {
   @Column({ name: 'is_verified', type: 'boolean', default: false })
   isVerified: boolean;
 
+  @Column({name:'company_logo', type:'varchar', length:255, nullable:true})
+  companyLogo?: string;
+
   @Column({
     type: 'enum',
     enum: CompanyRole,

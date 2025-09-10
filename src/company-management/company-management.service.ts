@@ -8,6 +8,8 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { AuthService } from 'src/user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import { LoginCompanyDto } from './dto/loginCompany.dto';
+import * as fs from 'fs';
+import * as path from 'path';
 import { JobEntity } from 'src/jobs/entities/job.entity';
 
 @Injectable()
@@ -28,38 +30,57 @@ export class CompanyManagementService {
     private readonly jwtService: JwtService,
   ) {}
 
-
-
   
 
-  async RegisterAsCompany(createCompanyDto: CreateCompanyManagementDto) {
-    const oldCompany=await this.companyRepository.findOne({
-      where:{
-        email:createCompanyDto.email
-      }
-    })
-    if(oldCompany){
-      throw new ForbiddenException(`company with ${oldCompany.email} is already register`)
-    }
-    const hashedpassword=await this.authService.hashPassword(createCompanyDto.password);
-    const NewCompany=await this.companyRepository.create({
-        companyName:createCompanyDto.companyName,
-        companyWebsite:createCompanyDto.companyWebsite,
-        companyLocation:createCompanyDto.companyLocation,
-        email:createCompanyDto.email,
-        password:hashedpassword,
-    })
-    
-    const savedCompany=await this.companyRepository.save(NewCompany)
-    const {password,...CompanyWithOutPassword}=savedCompany
-    const token= this.generateToken(savedCompany);
-    return {
-      company: CompanyWithOutPassword,
-      ...token,
-      message:`Welcome ${savedCompany.companyName} to our app`
-  };
-}
 
+  async RegisterAsCompany(createCompanyDto: CreateCompanyManagementDto, logoPath?: string) {
+    const oldCompany = await this.companyRepository.findOne({
+      where: { email: createCompanyDto.email },
+    });
+
+    if (oldCompany) {
+      throw new ForbiddenException(`Company with ${oldCompany.email} is already registered`);
+    }
+
+    const hashedPassword = await this.authService.hashPassword(createCompanyDto.password);
+
+    const newCompany = this.companyRepository.create({
+      companyName: createCompanyDto.companyName,
+      companyWebsite: createCompanyDto.companyWebsite,
+      companyLocation: createCompanyDto.companyLocation,
+      email: createCompanyDto.email,
+      password: hashedPassword,
+      companyLogo: logoPath ? logoPath : undefined,
+    });
+
+    const savedCompany = await this.companyRepository.save(newCompany);
+    const { password, ...companyWithoutPassword } = savedCompany;
+    const token = this.generateToken(savedCompany);
+
+    return {
+      company: companyWithoutPassword,
+      ...token,
+      message: `Welcome ${savedCompany.companyName} to our app`,
+    };
+  }
+
+  async updateCompany(id: number, updateDto: UpdateCompanyManagementDto, logoPath?: string) {
+    const company = await this.companyRepository.findOne({ where: { id } });
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    if (logoPath && company.companyLogo) {
+      const oldLogoPath = path.join(process.cwd(), company.companyLogo);
+      if (fs.existsSync(oldLogoPath)) {
+        fs.unlinkSync(oldLogoPath);
+      }
+      updateDto.companyLogo = logoPath;
+    }
+
+    Object.assign(company, updateDto);
+    return this.companyRepository.save(company);
+  }
 
 
   async LoginComapny(companyDto:LoginCompanyDto){

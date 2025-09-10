@@ -220,4 +220,32 @@ export class AuthController {
   async searchofuser(@Body()username:string){
     return this.authservice.SearchOfUser(username)
   }
+
+  @Put('disable/:id')
+  @UseGuards(JwtAuthGuard)
+  async disableAccount(
+    @Param('id') id: number,
+    @CurrentUser() currentUser: any,
+  ) {
+    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== id) {
+      throw new ForbiddenException('You can only update your own status');
+    }
+
+    return this.authservice.disable(id);
+  }
+  
+  @Put('undisable/:id')
+  @UseGuards(JwtAuthGuard)
+  async unDisableAccount(
+    @Param('id') id: number,
+    @CurrentUser() currentUser: any,
+  ) {
+    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== id) {
+      throw new ForbiddenException('You can only update your own status');
+    }
+
+    return this.authservice.undisable(id);
+  }
+
+  
 }

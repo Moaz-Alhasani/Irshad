@@ -27,4 +27,7 @@ export class CreateCompanyManagementDto {
   @IsBoolean()
   isVerified?: boolean;
 
+  @IsOptional()
+  @IsString()
+  companyLogo?: string;
 }

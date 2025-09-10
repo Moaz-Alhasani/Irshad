@@ -5,10 +5,12 @@ import {
     ManyToOne,
     JoinColumn,
     CreateDateColumn,
+    OneToMany,
 } from 'typeorm';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { JobEntity } from 'src/jobs/entities/job.entity';
 import { ResumeEntity } from 'src/resumes/entities/resume.entity';
+import {  InterviewEntity } from 'src/interview/entities/interview.entity';
 
 export enum ApplicationStatus {
     PENDING = 'pending',
@@ -34,6 +36,9 @@ export class JobApplyEntity {
     @JoinColumn({ name: 'resume_id' })
     resume: ResumeEntity;
 
+    @OneToMany(() => InterviewEntity, (interview) => interview.jobApplication)
+    interviews: InterviewEntity[];
+
     @Column({
         type: 'enum',
         enum: ApplicationStatus,
@@ -52,4 +57,5 @@ export class JobApplyEntity {
 
     @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
     createdAt: Date;
+
 }

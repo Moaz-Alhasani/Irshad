@@ -13,6 +13,7 @@ import { ResumesModule } from './resumes/resumes.module';
 import { ResumeEntity } from './resumes/entities/resume.entity';
 import { JobapplyModule } from './jobapply/jobapply.module';
 import { JobApplyEntity } from './jobapply/entities/jobApplyEntitt';
+import { InterviewModule } from './interview/interview.module';
 
 
 @Module({
@@ -37,6 +38,7 @@ import { JobApplyEntity } from './jobapply/entities/jobApplyEntitt';
     JobsModule,
     ResumesModule,
     JobapplyModule,
+    InterviewModule,
 
   ],
   controllers: [AppController],

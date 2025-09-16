@@ -7,6 +7,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { ResumeEntity } from 'src/resumes/entities/resume.entity';
 import { JobApplyEntity } from './entities/jobApplyEntitt';
+import { InterviewEntity } from 'src/interview/entities/interview.entity';
 
 @Module({
   imports:[
@@ -16,6 +17,7 @@ import { JobApplyEntity } from './entities/jobApplyEntitt';
       CompanyEntity,
       ResumeEntity,
       JobApplyEntity, 
+      InterviewEntity,
     ]),
   ],
   controllers: [JobapplyController],

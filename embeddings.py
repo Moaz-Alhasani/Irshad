@@ -1,7 +1,7 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
-model = SentenceTransformer(r'D:\sent transformres\all-MiniLM-L6-v2')
+model = SentenceTransformer(r'D:\multi-qa-mpnet-base-dot-v1')
 
 def compute_embedding(texts):
     if not texts:

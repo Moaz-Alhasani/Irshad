@@ -11,15 +11,16 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { InterviewEntity } from './entities/interview.entity';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { MailModule } from 'src/user/gobal/mail.module';
+import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 
 @Module({
   imports:[
-    TypeOrmModule.forFeature([JobEntity,UserEntity,InterviewEntity,CompanyEntity]),
+    TypeOrmModule.forFeature([JobEntity,UserEntity,InterviewEntity,CompanyEntity,JobApplyEntity]),
     CompanyManagementModule,
     JobsModule,
     JobapplyModule,
     AuthModule,
-    MailModule
+    MailModule,
   ],
   controllers: [InterviewController],
   providers: [InterviewService],

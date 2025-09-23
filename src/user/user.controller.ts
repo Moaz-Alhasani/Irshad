@@ -216,10 +216,10 @@ export class AuthController {
     return this.authservice.resendOtp(currentUser.email)
   }
 
-  @Post('searchuser')
-  async searchofuser(@Body()username:string){
-    return this.authservice.SearchOfUser(username)
-  }
+@Post('searchuser')
+async searchofuser(@Body('username') username: string) {
+  return this.authservice.SearchOfUser(username);
+}
 
   @Put('disable/:id')
   @UseGuards(JwtAuthGuard)

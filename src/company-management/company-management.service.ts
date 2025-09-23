@@ -11,6 +11,7 @@ import { LoginCompanyDto } from './dto/loginCompany.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { JobEntity } from 'src/jobs/entities/job.entity';
+import { ApplicationStatus, JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 
 @Injectable()
 export class CompanyManagementService {
@@ -23,7 +24,7 @@ export class CompanyManagementService {
     private readonly userRepository: Repository<UserEntity>,
 
     @InjectRepository(JobEntity) private jobsRepository:Repository<JobEntity>,
-
+    @InjectRepository(JobApplyEntity) private jobApplyRepository:Repository<JobApplyEntity>,
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
 
@@ -156,6 +157,39 @@ export class CompanyManagementService {
     };
 
   }
+
+
+async acceptTheUseraftertheinterviewservice(userId: number) {
+    const jobApplication = await this.jobApplyRepository.findOne({
+        where: { user: { id: userId }, application_status: ApplicationStatus.PENDING },
+        relations: ['user', 'job', 'resume']
+    });
+
+    if (!jobApplication) {
+        throw new NotFoundException('No pending application found for this user.');
+    }
+
+    jobApplication.application_status = ApplicationStatus.ACCEPTED;
+    await this.jobApplyRepository.save(jobApplication);
+
+    return { message: 'User application accepted', application: jobApplication };
+}
+async rejectTheUseraftertheinterviewservice(userId: number) {
+    const jobApplication = await this.jobApplyRepository.findOne({
+        where: { user: { id: userId }, application_status: ApplicationStatus.PENDING },
+        relations: ['user', 'job', 'resume']
+    });
+
+    if (!jobApplication) {
+        throw new NotFoundException('No pending application found for this user.');
+    }
+
+    jobApplication.application_status = ApplicationStatus.REJECTED;
+    await this.jobApplyRepository.save(jobApplication);
+
+    return { message: 'User application accepted', application: jobApplication };
+}
+
 
   private generateToken(company: CompanyEntity) {
     return {

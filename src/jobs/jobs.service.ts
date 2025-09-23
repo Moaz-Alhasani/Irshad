@@ -114,29 +114,29 @@ export class JobsService {
 
 
   async searchJobs(searchJobDto: SearchJobDto): Promise<JobEntity[]> {
-    const { title, location, jobType } = searchJobDto;
+  const { title, location, jobType } = searchJobDto;
 
-    const whereOptions: any = {};
+  const whereOptions: any = {};
 
-    if (title) {
-      whereOptions['title'] = ILike(`%${title.trim().replace(/['"]+/g, "")}%`);
-    }
-
-    if (location) {
-      whereOptions['location'] = ILike(`%${location.trim().replace(/['"]+/g, "")}%`);
-    }
-
-    if (jobType) {
-      whereOptions['employmentType'] = jobType; 
-    }
-    const allJobs = await this.jobRepository.find({
-      where: whereOptions,
-      relations: ['company'],
-      order: {
-        createdAt: 'DESC',
-      },
-    });
-    return allJobs;
+  if (title) {
+    whereOptions['title'] = ILike(`%${title.trim().replace(/['"]+/g, '')}%`);
   }
+
+  if (location) {
+    whereOptions['location'] = ILike(`%${location.trim().replace(/['"]+/g, '')}%`);
+  }
+
+  if (jobType) {
+    whereOptions['employmentType'] = jobType;
+  }
+
+  const allJobs = await this.jobRepository.find({
+    where: whereOptions,
+    relations: ['company'],
+    order: { createdAt: 'DESC' },
+  });
+
+  return allJobs;
+}
 
 }

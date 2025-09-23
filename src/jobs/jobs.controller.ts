@@ -120,9 +120,13 @@ export class JobsController {
     return this.jobsService.getAllJobs();
   }
 
-  @Get('search')
-  async searchjobs(@Body()searchJobDto:SearchJobDto){
-    return this.jobsService.searchJobs(searchJobDto)
-  }
+@Get('search')
+async searchjobs(
+  @Query('title') title?: string,
+  @Query('location') location?: string,
+  @Query('jobType') jobType?: string,
+) {
+  return this.jobsService.searchJobs({ title, location, jobType });
+}
 }
 

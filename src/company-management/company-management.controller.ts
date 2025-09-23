@@ -11,6 +11,7 @@ import { RolesGuard } from 'src/user/guards/roles-guard';
 import { LoginCompanyDto } from './dto/loginCompany.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
+import { CompanyRole } from './entities/company-management.entity';
 
 @Controller('company-management')
 export class CompanyManagementController {
@@ -78,4 +79,16 @@ export class CompanyManagementController {
                                   @CurrentUser()company:any){
                                     return this.companyManagementService.numberofApplyForJobs(jobid,company)
                                   }
+  @Get('acceptuser/:userid')
+  @Roles(CompanyRole.COMPANY)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async acceptTheUseraftertheinterview(@Param('userid',ParseIntPipe)userid:number)    {
+     return this.companyManagementService.acceptTheUseraftertheinterviewservice(userid)
+  }
+  @Get('rejectuser/:userid')
+  @Roles(CompanyRole.COMPANY)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async rejectTheUseraftertheinterview(@Param('userid',ParseIntPipe)userid:number)    {
+     return this.companyManagementService.rejectTheUseraftertheinterviewservice(userid)
+  }                              
 }

@@ -457,19 +457,36 @@ public async sendOtp(userEmail: string) {
     return checkOtp; 
   }
 
-  public async SearchOfUser(username:string):Promise<UserEntity>{
-    const cleanUsername = username.trim().replace(/['"]+/g, '');
-    const user=await this.userRepository.findOne({
-      where:{
-          firstName: ILike(`%${cleanUsername}%`) ,
-          lastName: ILike(`%${cleanUsername}%`) ,
-      }
-    })
-    if(!user){
-      throw new NotFoundException(`${username} is not exist`)
-    }
-    return user
+public async SearchOfUser(username: string): Promise<UserEntity> {
+  const cleanUsername = username.trim().replace(/['"]+/g, '');
+  const parts = cleanUsername.split(' ').filter(Boolean);
+  let user: UserEntity | null = null;
+
+  if (parts.length === 2) {
+    const [firstName, lastName] = parts;
+
+    user = await this.userRepository.findOne({
+      where: {
+        firstName: ILike(`%${firstName}%`),
+        lastName: ILike(`%${lastName}%`),
+      },
+    });
+  } else {
+    user = await this.userRepository.findOne({
+      where: [
+        { firstName: ILike(`%${cleanUsername}%`) },
+        { lastName: ILike(`%${cleanUsername}%`) },
+      ],
+    });
   }
+
+  if (!user) {
+    throw new NotFoundException(`${username} is not exist`);
+  }
+
+  return user;
+}
+
 
   public async resendOtp(userEmail: string) {
     return this.sendOtp(userEmail);

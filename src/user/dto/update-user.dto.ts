@@ -1,5 +1,6 @@
 import { IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { UserRole } from '../entities/user.entity';
+import { Type } from 'class-transformer';
 
 export class UpdateUserInfo {
   @IsOptional()
@@ -22,8 +23,10 @@ export class UpdateUserInfo {
   @IsString()
   profileImage?: string;
 
+  @IsOptional()
   @IsBoolean()
-  isActive: boolean;
+  @Type(() => Boolean)
+  isActive?: boolean;
 
   @IsOptional()
   @IsEnum(UserRole)

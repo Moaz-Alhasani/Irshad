@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from cv import analyze_resume
 from embeddings import compute_embedding
 from sklearn.metrics.pairwise import cosine_similarity
+from sentence_transformers import CrossEncoder
 import numpy as np
 import joblib
 import math
@@ -19,6 +20,7 @@ role_encoder = joblib.load(os.path.join(MODEL_DIR, "role_encoder.pkl"))
 work_encoder = joblib.load(os.path.join(MODEL_DIR, "work_encoder.pkl"))
 scaler = joblib.load(os.path.join(MODEL_DIR, "scaler.pkl"))
 model = joblib.load(os.path.join(MODEL_DIR, "xgboost_model.pkl"))
+cross_encoder = CrossEncoder(r"D:\cross_encoder_MiniLM_L12")
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -30,17 +32,12 @@ def analyze():
     result = analyze_resume(file_path)
     print("🔹 Full extracted result:")
     print(result)
-
-    skills_embedding = result.get("skills_embedding", [])
-    skills_embedding = [float(x) for x in skills_embedding]
-
     response = {
         "parser_output": result.get("parser_output", {}),
         "ner_entities": result.get("ner_entities", {}),
         "email": result.get("email"),
         "phone": result.get("phone"),
         "estimated_experience_years": result.get("experience_years", 1),
-        "skills_embedding": skills_embedding
     }
 
     return jsonify(response)
@@ -68,38 +65,45 @@ def fix_embedding_length(a, b):
     b = list(b) + [0.0] * (max_len - len_b)
     return np.array(a, dtype=float), np.array(b, dtype=float)
 
-
 @app.route("/get-similarity", methods=["POST"])
 def get_similarity():
     data = request.get_json()
-    resume_embedding = data.get("resume_embedding", [])
+    resume_text = data.get("resume_text", "")
     jobs = data.get("jobs", [])
 
-    print("📥 Received resume embedding:", resume_embedding[:10], "... len =", len(resume_embedding))
-    print("📥 Received jobs count:", len(jobs))
-    for job in jobs:
-        print(f"   Job {job.get('id')} embedding len = {len(job.get('embedding', []))}")
-
-    if not resume_embedding or not jobs:
+    if not resume_text or not jobs:
         return jsonify([])
 
-    results = []
+    pairs = []
+    job_ids = []
+
     for job in jobs:
         job_id = job.get("id")
-        job_embedding = job.get("embedding", [])
-        if not job_embedding:
-            print(f"Skipping job {job_id}, empty embedding")
-            continue
-        try:
-            fixed_resume, fixed_job = fix_embedding_length(resume_embedding, job_embedding)
-            score = float(cosine_similarity(fixed_resume.reshape(1, -1), fixed_job.reshape(1, -1))[0][0])
-            results.append({"jobId": job_id, "score": score})
-        except Exception as e:
-            print(f"Error with job {job_id}: {e}")
+        job_text_parts = []
+
+        if "required" in job:
+            job_text_parts.append(" ".join(job["required"]))
+        if "experience_years" in job and job["experience_years"]:
+            job_text_parts.append(f"Experience: {job['experience_years']} years")
+
+        job_text = " ".join(job_text_parts)
+        if not job_text.strip():
             continue
 
-    print("Similarity results:", results)
+        pairs.append([resume_text, job_text])
+        job_ids.append(job_id)
+
+    if not pairs:
+        return jsonify([])
+
+    raw_scores = cross_encoder.predict(pairs)
+
+    # تحويل القيم إلى 0-1 باستخدام sigmoid
+    scores = [1 / (1 + math.exp(-s)) for s in raw_scores]
+
+    results = [{"jobId": job_id, "score": float(score)} for job_id, score in zip(job_ids, scores)]
     return jsonify(results)
+
 
 
 @app.route("/predict-salary", methods=["POST"])

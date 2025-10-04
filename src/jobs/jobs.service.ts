@@ -22,40 +22,30 @@ export class JobsService {
     private readonly companyRepository: Repository<CompanyEntity>,
   ) {}
 
-  async createJob(createJobDto: CreateJobDto, companyId: number, company: any): Promise<JobEntity> {
-    const companyEntity = await this.companyRepository.findOne({
-      where: { id: companyId },
-    });
+async createJob(createJobDto: CreateJobDto, companyId: number, company: any): Promise<JobEntity> {
+  const companyEntity = await this.companyRepository.findOne({
+    where: { id: companyId },
+  });
 
-    if (!companyEntity) throw new NotFoundException('Company not found');
-    if (!companyEntity.isVerified)
-      throw new ForbiddenException('Your company cannot post any job right now');
+  if (!companyEntity) throw new NotFoundException('Company not found');
+  if (!companyEntity.isVerified)
+    throw new ForbiddenException('Your company cannot post any job right now');
 
-    let skills: string[] = [];
-    if (createJobDto.requiredSkills?.length) {
-      skills = createJobDto.requiredSkills
-        .map((skill) => skill.replace(/[\[\]"]+/g, '').trim())
-        .filter((skill) => skill.length > 0);
-    }
-
-    let embedding: number[] = [];
-    if (skills.length) {
-      const flaskRes = await axios.post<FlaskEmbeddingResponse>(
-        'http://localhost:5000/get-embedding',
-        { texts: skills },
-      );
-      embedding = flaskRes.data.embedding;
-    }
-
-    const job = this.jobRepository.create({
-      ...createJobDto,
-      company: companyEntity,
-      requiredSkills: skills,
-      embedding,
-    });
-
-    return await this.jobRepository.save(job);
+  let skills: string[] = [];
+  if (createJobDto.requiredSkills?.length) {
+    skills = createJobDto.requiredSkills
+      .map((skill) => skill.replace(/[\[\]"]+/g, '').trim())
+      .filter((skill) => skill.length > 0);
   }
+  const job = this.jobRepository.create({
+    ...createJobDto,
+    company: companyEntity,
+    requiredSkills: skills,
+  });
+
+  return await this.jobRepository.save(job);
+}
+
 
   async updateJob(id: number, updateDto: Partial<CreateJobDto>, company: any): Promise<JobEntity> {
     const job = await this.jobRepository.findOne({ where: { id }, relations: ['company'] });

@@ -50,9 +50,6 @@ async sendToFlaskAndSave(filePath: string, userId: number) {
       const university = data.ner_entities?.ORG?.[0] || null;
       const location = data.ner_entities?.LOC?.[0] || null;
 
-      const embeddingNumbers = Array.isArray(data.skills_embedding)
-      ? data.skills_embedding.map(x => Number(x)).filter(x => !isNaN(x))
-      : [];
       const resume = this.resumeRepo.create({
         file_path: filePath,
         extracted_skills: combinedSkills,
@@ -65,7 +62,6 @@ async sendToFlaskAndSave(filePath: string, userId: number) {
         phone: data.phone || null,
         university,
         location,
-        embedding:  embeddingNumbers,
         user: { id: userId } as any,
       } as DeepPartial<ResumeEntity>);
 

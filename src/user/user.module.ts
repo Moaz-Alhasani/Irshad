@@ -16,16 +16,17 @@ import Redis from 'ioredis';
 import { MailService } from './gobal/MailService';
 
 import { MailModule } from './gobal/mail.module';
+import { RefreshTokenEntity } from './entities/refreshToken.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, CompanyEntity, ResumeEntity]),
+    TypeOrmModule.forFeature([UserEntity, CompanyEntity, ResumeEntity,RefreshTokenEntity]),
     PassportModule,
     JwtModule.register({}),
     forwardRef(() => CompanyManagementModule),
     ResumesModule,
     JobsModule,
-    MailModule
+    MailModule,
   ],
   exports: [AuthModule, RolesGuard, AuthService],
   controllers: [AuthController],

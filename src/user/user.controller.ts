@@ -63,6 +63,12 @@ export class AuthController {
     sameSite: 'strict',
     maxAge: 1000 * 60 * 60, 
   });
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 أيام
+  });
     return {
       user,
       accessToken,
@@ -82,9 +88,22 @@ export class AuthController {
     return { message: `Logout successful for user ${user.email}` };
   }
 
+  // @Post('refresh')
+  // refresh(@Body('refreshToken') refreshToken: string) {
+  //   return this.authservice.refreshToken(refreshToken);
+  // }
+
   @Post('refresh')
-  refresh(@Body('refreshToken') refreshToken: string) {
-    return this.authservice.refreshToken(refreshToken);
+  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const refreshToken = req.cookies['refreshToken'];
+    const accessToken = await this.authservice.refreshToken(refreshToken);
+    res.cookie('accessToken', accessToken, {
+      httpOnly: true,
+      secure: true, 
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+    });
+    return { message: 'Access token refreshed' };
   }
 
   @UseGuards(JwtAuthGuard)

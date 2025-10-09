@@ -331,18 +331,18 @@ async getRecommendedJobs(userId: number) {
       refreshToken: this.generateRefreshToken(user),
     };
   }
-
+ 
   private generateAccessToken(user: UserEntity): string {
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
-    };
+    }; 
     return this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET || 'jwt_secret',
       expiresIn: '15m',
     });
-  }
+  } 
 
   private generateRefreshToken(user: UserEntity): string {
     const payload = { sub: user.id };

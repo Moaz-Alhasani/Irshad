@@ -40,16 +40,16 @@ export class AuthController {
       const imagePath = file ? `uploads/profile/${file.filename}` : null;
       const { user, accessToken, refreshToken } =  await this.authservice.register(registerDto, imagePath);
 
-    res.cookie('accessToken', accessToken, {
+    res.cookie('tempToken', accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
-      maxAge: 1000 * 60 * 60,
+      maxAge: 1000 * 60 * 3,
     });
 
     return {
       user,
-      accessToken,
+      tempToken:accessToken,
       message: 'Registration successful',
     };
   }
@@ -162,13 +162,26 @@ export class AuthController {
       return this.authservice.getRecommendedJobs(currentUser.id);
   }
 
-  @Post('verify-email')
-  @UseGuards(JwtAuthGuard)
-  async verifyOtpforemail (
-    @CurrentUser() currentUser: any,
-    @Body('otp') otp: string,
-  ) {
-    return this.authservice.verifyOtpForEmail(currentUser.email, otp);
+@Post('verify-email')
+@UseGuards(JwtAuthGuard) 
+async verifyOtpForEmail(
+  @CurrentUser() currentUser: any,
+  @Body('otp') otp: string,
+  @Res({ passthrough: true }) res: Response,
+) {
+  const result = await this.authservice.verifyOtpForEmail(currentUser.email, otp);
+
+  if (result.success && result.tokens) {
+    res.clearCookie('tempToken');
+
+    res.cookie('accessToken', result.tokens.accessToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'strict',
+      maxAge: 1000 * 60 * 60 * 24,
+    });
+  }
+  return  result.tokens
   }
 
   @Post('forget-password')

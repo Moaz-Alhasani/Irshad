@@ -454,19 +454,36 @@ public async sendOtp(userEmail: string) {
     return { success: false, message: 'Invalid OTP' };
   }
 
-  public async verifyOtpForEmail(userEmail: string, otp: string) {
-    const checkOtp = this.verifyOtp(userEmail, otp);
-    if (checkOtp.success) {
-      const user = await this.userRepository.findOne({ where: { email: userEmail } });
-      if (!user) {
-        throw new ForbiddenException('User not found');
-      }
-      user.isVerify = true;
-      await this.userRepository.save(user);
-      return { success: true, message: 'OTP verified and user updated' };
-    }
-    return checkOtp; 
+ public async verifyOtpForEmail(userEmail: string, otp: string) {
+  const checkOtp = this.verifyOtp(userEmail, otp);
+
+  if (!checkOtp.success) {
+    return { success: false, message: checkOtp.message };
   }
+
+  const user = await this.userRepository.findOne({ where: { email: userEmail } });
+  if (!user) throw new ForbiddenException('User not found');
+
+  user.isVerify = true;
+  await this.userRepository.save(user);
+
+  const tokens = this.generateToken(user);
+
+  return {
+    success: true,
+    message: 'OTP verified. User activated and tokens generated.',
+    tokens,
+    user: {
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      profileImage: user.profileImage,
+    },
+  };
+}
+
 
 public async SearchOfUser(username: string): Promise<UserEntity> {
   const cleanUsername = username.trim().replace(/['"]+/g, '');

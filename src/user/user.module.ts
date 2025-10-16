@@ -17,20 +17,27 @@ import { MailService } from './gobal/MailService';
 
 import { MailModule } from './gobal/mail.module';
 import { RefreshTokenEntity } from './entities/refreshToken.entity';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { JobapplyModule } from 'src/jobapply/jobapply.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([UserEntity, CompanyEntity, ResumeEntity,RefreshTokenEntity]),
     PassportModule,
-    JwtModule.register({}),
+    JwtModule.register({
+       secret: process.env.JWT_SECRET || 'jwt_secret',
+      signOptions: { expiresIn: '15m' },
+    }),
     forwardRef(() => CompanyManagementModule),
-    ResumesModule,
+    forwardRef(() => ResumesModule), 
     JobsModule,
     MailModule,
+    forwardRef(() => JobapplyModule)
   ],
-  exports: [AuthModule, RolesGuard, AuthService],
+  exports: [RolesGuard, AuthService, JwtModule, JwtAuthGuard],
   controllers: [AuthController],
   providers: [
+    JwtAuthGuard,
     AuthService,
     jwtStrategy,
     RolesGuard

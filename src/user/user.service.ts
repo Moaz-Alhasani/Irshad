@@ -50,7 +50,7 @@ export class AuthService {
     private MailService:MailService
   ) {}
 
-  async register(registerDto: RegisterDto,imagePath: string | null) {
+  async register(registerDto: RegisterDto,imagePath: string | null,fingerprint:string) {
     const existingUser = await this.userRepository.findOne({
       where: { email: registerDto.email },
     });
@@ -70,7 +70,7 @@ export class AuthService {
     const savedUser = await this.userRepository.save(newUser);
     await this.sendOtp(newUser.email)
     const { password, ...userWithoutPassword } = savedUser;
-    const tokens = this.generateToken(savedUser);
+    const tokens = this.generateToken(savedUser,fingerprint);
     return {
       user: userWithoutPassword,
       ...tokens,
@@ -78,7 +78,7 @@ export class AuthService {
     };
   }
 
-  async createAdmin(registerDto: RegisterDto) {
+  async createAdmin(registerDto: RegisterDto,fingerprint:string) {
     const existingUser = await this.userRepository.findOne({
       where: { email: registerDto.email },
     });
@@ -95,7 +95,7 @@ export class AuthService {
     });
     const savedUser = await this.userRepository.save(newUser);
     const { password, ...userWithoutPassword } = savedUser;
-    const tokens = this.generateToken(savedUser);
+    const tokens = this.generateToken(savedUser,fingerprint);
     return {
       user: userWithoutPassword,
       ...tokens,
@@ -103,7 +103,7 @@ export class AuthService {
     };
   }
 
-  async createSuperAdmin(registerDto: RegisterDto) {
+  async createSuperAdmin(registerDto: RegisterDto,fingerprint:string) {
     const existingUser = await this.userRepository.findOne({
       where: { email: registerDto.email },
     });
@@ -120,7 +120,7 @@ export class AuthService {
     });
     const savedUser = await this.userRepository.save(newUser);
     const { password, ...userWithoutPassword } = savedUser;
-    const tokens = this.generateToken(savedUser);
+    const tokens = this.generateToken(savedUser,fingerprint);
     return {
       user: userWithoutPassword,
       ...tokens,
@@ -129,7 +129,7 @@ export class AuthService {
   }
 
 
-  async login(loginDto: LoginDto) {
+  async login(loginDto: LoginDto,fingerprint:string) {
     const user = await this.userRepository.findOne({
       where: { email: loginDto.email },
     });
@@ -143,7 +143,7 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    const tokens = this.generateToken(user);
+    const tokens = this.generateToken(user,fingerprint);
     const { password, ...userWithoutPassword } = user;
     return {
       user: userWithoutPassword,
@@ -151,7 +151,7 @@ export class AuthService {
     };
   }
   
-  async refreshToken(refreshToken: string) {
+  async refreshToken(refreshToken: string,fingerprint:string) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
         secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
@@ -164,7 +164,7 @@ export class AuthService {
       if (!user) {
         throw new UnauthorizedException('User not found');
       }
-      const accessToken = this.generateAccessToken(user);
+      const accessToken = this.generateAccessToken(user,fingerprint);
       return { accessToken };
     } catch (error) {
       throw new ForbiddenException('Invalid or expired refresh token');
@@ -325,18 +325,19 @@ async getRecommendedJobs(userId: number) {
   }
 
 
-  private generateToken(user: UserEntity) {
+  private generateToken(user: UserEntity,fingerprint:string) {
     return {
-      accessToken: this.generateAccessToken(user),
-      refreshToken: this.generateRefreshToken(user),
+      accessToken: this.generateAccessToken(user,fingerprint),
+      refreshToken: this.generateRefreshToken(user,fingerprint),
     };
   }
  
-  private generateAccessToken(user: UserEntity): string {
+  private generateAccessToken(user: UserEntity,fingerprint: string): string {
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
+      fingerprint
     }; 
     return this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET || 'jwt_secret',
@@ -344,8 +345,8 @@ async getRecommendedJobs(userId: number) {
     });
   } 
 
-  private generateRefreshToken(user: UserEntity): string {
-    const payload = { sub: user.id };
+  private generateRefreshToken(user: UserEntity,fingerprint: string): string {
+    const payload = { sub: user.id , fingerprint};
     return this.jwtService.sign(payload, {
       secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
       expiresIn: '7d',
@@ -454,7 +455,7 @@ public async sendOtp(userEmail: string) {
     return { success: false, message: 'Invalid OTP' };
   }
 
- public async verifyOtpForEmail(userEmail: string, otp: string) {
+ public async verifyOtpForEmail(userEmail: string, otp: string,fingerprint:string) {
   const checkOtp = this.verifyOtp(userEmail, otp);
 
   if (!checkOtp.success) {
@@ -467,7 +468,7 @@ public async sendOtp(userEmail: string) {
   user.isVerify = true;
   await this.userRepository.save(user);
 
-  const tokens = this.generateToken(user);
+  const tokens = this.generateToken(user,fingerprint);
 
   return {
     success: true,

@@ -13,7 +13,7 @@ import { jwtStrategy } from './strategies/jwt.strategy';
 import { extname } from 'path';
 import { diskStorage } from 'multer';
 import { FileInterceptor } from '@nestjs/platform-express';
-
+import {generateFingerprint} from '../utils/fingerprint'
 
 
 @Controller('auth')
@@ -35,10 +35,12 @@ export class AuthController {
   async register(
     @Body() registerDto: RegisterDto,
     @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
       const imagePath = file ? `uploads/profile/${file.filename}` : null;
-      const { user, accessToken, refreshToken } =  await this.authservice.register(registerDto, imagePath);
+      const fingerprint = generateFingerprint(req); 
+      const { user, accessToken, refreshToken } =  await this.authservice.register(registerDto, imagePath,fingerprint);
 
     res.cookie('tempToken', accessToken, {
       httpOnly: true,
@@ -55,8 +57,9 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(@Body() loginDto: LoginDto,@Res({ passthrough: true }) res: Response) {
-    const { user, accessToken, refreshToken } = await this.authservice.login(loginDto);
+  async login(@Body() loginDto: LoginDto,@Req() req : Request ,@Res({ passthrough: true }) res: Response) {
+    const fingerprint = generateFingerprint(req);
+    const { user, accessToken, refreshToken } = await this.authservice.login(loginDto,fingerprint);
     res.cookie('accessToken', accessToken, {
     httpOnly: true, 
     secure: true,   
@@ -96,7 +99,8 @@ export class AuthController {
   @Post('refresh')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies['refreshToken'];
-    const accessToken = await this.authservice.refreshToken(refreshToken);
+    const fingerprint = generateFingerprint(req);
+    const accessToken = await this.authservice.refreshToken(refreshToken,fingerprint);
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: true, 
@@ -115,15 +119,17 @@ export class AuthController {
   @Post('createAdmin')
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  createAdmin(@Body() registerDto: RegisterDto) {
-    return this.authservice.createAdmin(registerDto);
+  createAdmin(@Body() registerDto: RegisterDto , @Req() req : Request) {
+    const fingerprint = generateFingerprint(req);
+    return this.authservice.createAdmin(registerDto,fingerprint);
   }
 
   @Post('createSuperAdmin')
   @Roles(UserRole.SUPER_ADMIN) // 
   @UseGuards(JwtAuthGuard, RolesGuard)
-  createSuperAdmin(@Body() registerDto: RegisterDto) {
-    return this.authservice.createSuperAdmin(registerDto);
+  createSuperAdmin(@Body() registerDto: RegisterDto , @Req() req :Request) {
+    const fingerprint = generateFingerprint(req)
+    return this.authservice.createSuperAdmin(registerDto,fingerprint);
   }
 
 
@@ -186,9 +192,11 @@ export class AuthController {
 async verifyOtpForEmail(
   @CurrentUser() currentUser: any,
   @Body('otp') otp: string,
+  @Req() req : Request,
   @Res({ passthrough: true }) res: Response,
 ) {
-  const result = await this.authservice.verifyOtpForEmail(currentUser.email, otp);
+  const fingerprint = generateFingerprint(req)
+  const result = await this.authservice.verifyOtpForEmail(currentUser.email, otp,fingerprint);
 
   if (result.success && result.tokens) {
     res.clearCookie('tempToken');
@@ -254,7 +262,7 @@ async searchofuser(@Body('username') username: string) {
 }
 
   @Put('disable/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard) 
   async disableAccount(
     @Param('id') id: number,
     @CurrentUser() currentUser: any,

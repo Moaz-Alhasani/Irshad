@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { JobapplyController } from './jobapply.controller';
 import { JobapplyService } from './jobapply.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -8,6 +8,7 @@ import { CompanyEntity } from 'src/company-management/entities/company-managemen
 import { ResumeEntity } from 'src/resumes/entities/resume.entity';
 import { JobApplyEntity } from './entities/jobApplyEntitt';
 import { InterviewEntity } from 'src/interview/entities/interview.entity';
+import { AuthModule } from 'src/user/user.module';
 
 @Module({
   imports:[
@@ -19,6 +20,7 @@ import { InterviewEntity } from 'src/interview/entities/interview.entity';
       JobApplyEntity, 
       InterviewEntity,
     ]),
+  forwardRef(() => AuthModule)
   ],
   controllers: [JobapplyController],
   providers: [JobapplyService],

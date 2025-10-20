@@ -1,4 +1,4 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
+import { IsDateString, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength } from 'class-validator';
 import { UserRole } from '../entities/user.entity';
 
 export class RegisterDto {
@@ -15,6 +15,10 @@ export class RegisterDto {
   @MinLength(8)
   password: string;
 
+  @IsNotEmpty()
+  @IsDateString({}, { message: 'birthDate must be a valid date (YYYY-MM-DD)' })
+  birthDate: string;
+
   @IsOptional()
   @IsString()
   profileImage?: string;
@@ -22,4 +26,6 @@ export class RegisterDto {
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
+
+
 }

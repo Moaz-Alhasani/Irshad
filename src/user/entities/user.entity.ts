@@ -1,4 +1,6 @@
 import {
+  BeforeInsert,
+  BeforeUpdate,
   Column,
   CreateDateColumn,
   Entity,
@@ -34,6 +36,34 @@ export class UserEntity {
 
   @Column({ type: 'text' })
   password: string;
+
+  @Column({ type: 'date', nullable: true })
+  birthDate: Date;
+
+  @Column({ type: 'int', nullable: true })
+  age: number;
+
+
+  @BeforeInsert()
+  @BeforeUpdate()
+  validateAndCalculateAge() {
+    if (this.birthDate) {
+      const today = new Date();
+      const birthDate = new Date(this.birthDate);
+      if (birthDate > today) {
+        throw new Error('Birth date cannot be in the future');
+      }
+      let age = today.getFullYear() - birthDate.getFullYear();
+      const monthDiff = today.getMonth() - birthDate.getMonth();
+      const dayDiff = today.getDate() - birthDate.getDate();
+
+      if (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)) {
+        age--;
+      }
+
+      this.age = age;
+    }
+  }
 
   @Column({
     type: 'enum',

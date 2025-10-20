@@ -65,6 +65,7 @@ export class AuthService {
       password: hashedPassword,
       role: registerDto.role || UserRole.JOB_SEEKER,
       profileImage: registerDto.profileImage ,
+      birthDate: new Date(registerDto.birthDate),
     });
 
     const savedUser = await this.userRepository.save(newUser);

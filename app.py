@@ -113,7 +113,7 @@ def predict_salary():
         exp_years = data.get("experience_years", 1)
         skills_str = data.get("skills", "")
         education_str = data.get("education", "")
-        role = data.get("role", "AI")
+        role = data.get("role", "AI")           
         work_type = data.get("work_type", "Remote")
 
   

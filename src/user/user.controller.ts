@@ -42,7 +42,7 @@ export class AuthController {
       const fingerprint = generateFingerprint(req); 
       const { user, accessToken, refreshToken } =  await this.authservice.register(registerDto, imagePath,fingerprint);
 
-    res.cookie('tempToken', accessToken, {
+    res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: true,
       sameSite: 'strict',
@@ -145,7 +145,7 @@ export class AuthController {
     }),
   }))
   async updateUser(
-    @Param('id') id: number,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateUserInfo: UpdateUserInfo,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() currentUser: any,
@@ -199,7 +199,7 @@ async verifyOtpForEmail(
   const result = await this.authservice.verifyOtpForEmail(currentUser.email, otp,fingerprint);
 
   if (result.success && result.tokens) {
-    res.clearCookie('tempToken');
+    res.clearCookie('accessToken');
 
     res.cookie('accessToken', result.tokens.accessToken, {
       httpOnly: true,

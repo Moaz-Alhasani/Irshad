@@ -113,6 +113,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getFullProfile(@CurrentUser() user: any) {
+    console.log(user.age)
     return this.authservice.getUserWithResume(user.id);
   }
 

@@ -20,7 +20,7 @@ export class JobapplyController {
         @Body() createjobapplydto: CreateJobApplyDto,
         @CurrentUser() currentuser: any
     ) {
-        return this.jobsservice.JobApply(jobid, currentuser, createjobapplydto);
+        return this.jobsservice.applyToJob(jobid, currentuser, createjobapplydto);
     }
 
     @Post('withdrawjobs/:jobid')

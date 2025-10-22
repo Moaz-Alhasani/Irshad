@@ -4,6 +4,8 @@ import { DeepPartial, Repository } from 'typeorm';
 import { ResumeEntity } from './entities/resume.entity';
 import axios from 'axios';
 import { existsSync, unlinkSync } from 'fs';
+import { ResumeDto } from './dto/resume.dto';
+import { UserEntity } from 'src/user/entities/user.entity';
 
 interface FlaskResponse {
   parser_output?: {
@@ -29,6 +31,8 @@ export class ResumesService {
   constructor(
     @InjectRepository(ResumeEntity)
     private resumeRepo: Repository<ResumeEntity>,
+    @InjectRepository(UserEntity)
+    private userEntity:Repository<UserEntity>
   ) {}
 
 async sendToFlaskAndSave(filePath: string, userId: number) {
@@ -93,6 +97,39 @@ async sendToFlaskAndSave(filePath: string, userId: number) {
     }
     await this.resumeRepo.remove(resume);
     return { success: true, message: 'Resume deleted successfully' };
+  }
+
+  async registerResume(currentuser:any,resumeDto:ResumeDto){
+
+    const user=await this.userEntity.findOne({
+      where:{
+        id:currentuser.id
+      }
+    })
+
+    if(!user){
+      throw new ForbiddenException("user is not exist")
+    }
+
+    const normalizeArray = (field: string | string[]): string[] => 
+        Array.isArray(field) ? field : [field];
+    
+    const resume = this.resumeRepo.create({
+        user: currentuser.id,
+        location: resumeDto.location,
+        languages: normalizeArray(resumeDto.languages),
+        experience_years: resumeDto.experience_years,
+        extracted_skills: normalizeArray(resumeDto.skills),
+        certifications: normalizeArray(resumeDto.certifications),
+        education: normalizeArray(resumeDto.education),
+        phone: resumeDto.phone,
+        university: resumeDto.universtiy
+    });
+
+    await this.resumeRepo.save(resume)
+
+    return resume
+  
   }
 }
 

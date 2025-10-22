@@ -1,4 +1,4 @@
-import { Controller, Post, UseInterceptors, UploadedFile, UseGuards, Param, Put, Delete } from '@nestjs/common';
+import { Controller, Post, UseInterceptors, UploadedFile, UseGuards, Param, Put, Delete, Body } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ResumesService } from './resumes.service';
 import { diskStorage } from 'multer';
@@ -9,6 +9,7 @@ import { UserRole } from 'src/user/entities/user.entity';
 import { JwtAuthGuard } from 'src/user/guards/jwt-auth.guard';
 import { RolesGuard } from 'src/user/guards/roles-guard';
 import { CurrentUser } from 'src/user/decorators/current_user.decorators';
+import { ResumeDto } from './dto/resume.dto';
 
 
 @Controller('resumes')
@@ -75,4 +76,15 @@ export class ResumesController {
   async deleteCV(@Param('id') id: number, @CurrentUser() user: any) {
     return this.resumesService.deleteResume(id, user.id);
   }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Post('create') 
+  async createResume(
+    @Body() resumeDto: ResumeDto,
+    @CurrentUser() currentUser: any
+  ) {
+    return this.resumesService.registerResume(currentUser, resumeDto);
+  }
+  
 }

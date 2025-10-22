@@ -11,7 +11,8 @@ import { forwardRef } from '@nestjs/common';
 @Module({
 imports: [
   TypeOrmModule.forFeature([ResumeEntity,UserEntity,JobApplyEntity]),
-  forwardRef(() => AuthModule)
+  forwardRef(() => AuthModule),
+
 ],
   controllers: [ResumesController],
   providers: [ResumesService],

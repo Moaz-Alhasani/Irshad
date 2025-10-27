@@ -3,7 +3,7 @@ import {  IsArray, IsNotEmpty, IsString, ValidateIf } from 'class-validator';
 
 export class ResumeDto{
     @IsNotEmpty()
-    universtiy:string
+    university:string
 
     @IsNotEmpty()
     location:string
@@ -36,7 +36,7 @@ export class ResumeDto{
     @ValidateIf(o => typeof o.skills === 'string' || Array.isArray(o.skills))
     @IsArray()
     @IsString({ each: true })
-    skills: string[];
+    extracted_skills: string[];
 
 
 }

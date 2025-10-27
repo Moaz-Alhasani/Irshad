@@ -116,20 +116,21 @@ async sendToFlaskAndSave(filePath: string, userId: number) {
     
     const resume = this.resumeRepo.create({
         user: currentuser.id,
+        file_path: '', 
         location: resumeDto.location,
         languages: normalizeArray(resumeDto.languages),
         experience_years: resumeDto.experience_years,
-        extracted_skills: normalizeArray(resumeDto.skills),
-        certifications: normalizeArray(resumeDto.certifications),
-        education: normalizeArray(resumeDto.education),
+        extracted_skills: normalizeArray(resumeDto.extracted_skills),
+        certifications: normalizeArray(resumeDto.certifications)|| '',
+        education: normalizeArray(resumeDto.education)|| '',
         phone: resumeDto.phone,
-        university: resumeDto.universtiy
+        university: resumeDto.university,
     });
 
     await this.resumeRepo.save(resume)
 
     return resume
-  
+
   }
 }
 

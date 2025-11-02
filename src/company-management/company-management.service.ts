@@ -12,10 +12,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { JobEntity } from 'src/jobs/entities/job.entity';
 import { ApplicationStatus, JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
+import { generateFingerprint } from 'src/utils/fingerprint';
+import { Request } from 'express';
 
 @Injectable()
 export class CompanyManagementService {
-  
   constructor(
     @InjectRepository(CompanyEntity)
     private readonly companyRepository: Repository<CompanyEntity>,
@@ -23,25 +24,21 @@ export class CompanyManagementService {
     @InjectRepository(UserEntity)
     private readonly userRepository: Repository<UserEntity>,
 
-    @InjectRepository(JobEntity) private jobsRepository:Repository<JobEntity>,
-    @InjectRepository(JobApplyEntity) private jobApplyRepository:Repository<JobApplyEntity>,
+    @InjectRepository(JobEntity)
+    private readonly jobsRepository: Repository<JobEntity>,
+
+    @InjectRepository(JobApplyEntity)
+    private readonly jobApplyRepository: Repository<JobApplyEntity>,
+
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
 
     private readonly jwtService: JwtService,
   ) {}
 
-  
-
-
   async RegisterAsCompany(createCompanyDto: CreateCompanyManagementDto, logoPath?: string) {
-    const oldCompany = await this.companyRepository.findOne({
-      where: { email: createCompanyDto.email },
-    });
-
-    if (oldCompany) {
-      throw new ForbiddenException(`Company with ${oldCompany.email} is already registered`);
-    }
+    const oldCompany = await this.companyRepository.findOne({ where: { email: createCompanyDto.email } });
+    if (oldCompany) throw new ForbiddenException(`Company with ${oldCompany.email} is already registered`);
 
     const hashedPassword = await this.authService.hashPassword(createCompanyDto.password);
 
@@ -51,13 +48,13 @@ export class CompanyManagementService {
       companyLocation: createCompanyDto.companyLocation,
       email: createCompanyDto.email,
       password: hashedPassword,
-      companyLogo: logoPath ? logoPath : undefined,
+      companyLogo: logoPath ?? undefined,
     });
 
     const savedCompany = await this.companyRepository.save(newCompany);
     const { password, ...companyWithoutPassword } = savedCompany;
-    const token = this.generateToken(savedCompany);
 
+    const token = this.generateToken(savedCompany);
     return {
       company: companyWithoutPassword,
       ...token,
@@ -67,15 +64,11 @@ export class CompanyManagementService {
 
   async updateCompany(id: number, updateDto: UpdateCompanyManagementDto, logoPath?: string) {
     const company = await this.companyRepository.findOne({ where: { id } });
-    if (!company) {
-      throw new NotFoundException('Company not found');
-    }
+    if (!company) throw new NotFoundException('Company not found');
 
     if (logoPath && company.companyLogo) {
       const oldLogoPath = path.join(process.cwd(), company.companyLogo);
-      if (fs.existsSync(oldLogoPath)) {
-        fs.unlinkSync(oldLogoPath);
-      }
+      if (fs.existsSync(oldLogoPath)) fs.unlinkSync(oldLogoPath);
       updateDto.companyLogo = logoPath;
     }
 
@@ -83,65 +76,33 @@ export class CompanyManagementService {
     return this.companyRepository.save(company);
   }
 
+  async LoginComapny(companyDto: LoginCompanyDto, req?: Request) {
+    const oldCompany = await this.companyRepository.findOne({ where: { email: companyDto.email } });
+    if (!oldCompany) throw new ForbiddenException(`Company with ${companyDto.email} does not exist`);
 
-  async LoginComapny(companyDto:LoginCompanyDto){
-      const oldCompany=await this.companyRepository.findOne({
-      where:{
-        email:companyDto.email
-      }
-    })
-      if(!oldCompany){
-      throw new ForbiddenException(`company with ${companyDto.email} is not exit you have to register `)
-    }
-    const matchedpassword=await this.authService.verifyPassword(companyDto.password,oldCompany.password)
-    if(!matchedpassword){
-      throw new ForbiddenException('Invalid password');
-    }
-    const tokens = this.generateToken(oldCompany);
+    const matchedPassword = await this.authService.verifyPassword(companyDto.password, oldCompany.password);
+    if (!matchedPassword) throw new ForbiddenException('Invalid password');
+
+    const tokens = this.generateToken(oldCompany, req);
     const { password, ...userWithoutPassword } = oldCompany;
-    return {
-      user: userWithoutPassword,
-      ...tokens,
-    };
+
+    return { user: userWithoutPassword, ...tokens };
   }
 
-
   async getCompanyJobs(companyId: number) {
-    const company = await this.companyRepository.findOne({
-      where: { id: companyId },
-      relations: ['jobs'],
-    });
-
-    if (!company) {
-      throw new NotFoundException('Company not found');
-    }
-
+    const company = await this.companyRepository.findOne({ where: { id: companyId }, relations: ['jobs'] });
+    if (!company) throw new NotFoundException('Company not found');
     return company.jobs;
   }
 
-  public async getNumberofCompanyJobs(company:any):Promise<Number>{
-    const companyjobs=await this.jobsRepository.count({
-      where:{
-          company: {
-            id: company.id,
-      }
-      }
-    })
-    return companyjobs
+  public async getNumberofCompanyJobs(company: any): Promise<number> {
+    return await this.jobsRepository.count({ where: { company: { id: company.id } } });
   }
 
-  public async numberofApplyForJobs(jobid:number,company:any){
-    const job=await this.jobsRepository.findOne({
-      where:{
-        id:jobid
-      },relations:['applications','company']
-    })
-    if(!job){
-      throw new NotFoundException(`job not found`)
-    }
-    if (job.company.id!==company.id){
-      throw new ForbiddenException(`you don't have the right `)
-    }
+  public async numberofApplyForJobs(jobid: number, company: any) {
+    const job = await this.jobsRepository.findOne({ where: { id: jobid }, relations: ['applications', 'company'] });
+    if (!job) throw new NotFoundException('Job not found');
+    if (job.company.id !== company.id) throw new ForbiddenException(`You don't have the right`);
 
     const jobWithApplications = await this.jobsRepository
       .createQueryBuilder('job')
@@ -152,69 +113,59 @@ export class CompanyManagementService {
       .getOne();
 
     return {
-      applicants: jobWithApplications?.applications || [],
-      totalApplicants: jobWithApplications?.applications.length || 0
+      applicants: jobWithApplications?.applications ?? [],
+      totalApplicants: jobWithApplications?.applications.length ?? 0,
     };
-
   }
 
-
-async acceptTheUseraftertheinterviewservice(userId: number) {
+  async acceptTheUseraftertheinterviewservice(userId: number) {
     const jobApplication = await this.jobApplyRepository.findOne({
-        where: { user: { id: userId }, application_status: ApplicationStatus.PENDING },
-        relations: ['user', 'job', 'resume']
+      where: { user: { id: userId }, application_status: ApplicationStatus.PENDING },
+      relations: ['user', 'job', 'resume'],
     });
 
-    if (!jobApplication) {
-        throw new NotFoundException('No pending application found for this user.');
-    }
+    if (!jobApplication) throw new NotFoundException('No pending application found for this user.');
 
     jobApplication.application_status = ApplicationStatus.ACCEPTED;
     await this.jobApplyRepository.save(jobApplication);
 
     return { message: 'User application accepted', application: jobApplication };
-}
-async rejectTheUseraftertheinterviewservice(userId: number) {
+  }
+
+  async rejectTheUseraftertheinterviewservice(userId: number) {
     const jobApplication = await this.jobApplyRepository.findOne({
-        where: { user: { id: userId }, application_status: ApplicationStatus.PENDING },
-        relations: ['user', 'job', 'resume']
+      where: { user: { id: userId }, application_status: ApplicationStatus.PENDING },
+      relations: ['user', 'job', 'resume'],
     });
 
-    if (!jobApplication) {
-        throw new NotFoundException('No pending application found for this user.');
-    }
+    if (!jobApplication) throw new NotFoundException('No pending application found for this user.');
 
     jobApplication.application_status = ApplicationStatus.REJECTED;
     await this.jobApplyRepository.save(jobApplication);
 
-    return { message: 'User application accepted', application: jobApplication };
-}
+    return { message: 'User application rejected', application: jobApplication };
+  }
 
-
-  private generateToken(company: CompanyEntity) {
+  private generateToken(company: CompanyEntity, req?: Request) {
     return {
-      accessToken: this.generateAccessToken(company),
-      refreshToken: this.generateRefreshToken(company),
+      accessToken: this.generateAccessToken(company, req),
+      refreshToken: this.generateRefreshToken(company, req),
     };
   }
 
-  private generateAccessToken(company: CompanyEntity): string {
-    const payload = {
-      sub: company.id,
-      email: company.email,
-      role: company.role,
-    };
-    return this.jwtService.sign(payload, {
-      secret: process.env.JWT_SECRET || 'jwt_secret',
-      expiresIn: '15m',
-    });
+  private generateAccessToken(company: CompanyEntity, req?: Request): string {
+    const fingerprint = req ? generateFingerprint(req) : undefined;
+    const payload: any = { sub: company.id, email: company.email, role: company.role };
+    if (fingerprint) payload.fingerprint = fingerprint;
+
+    return this.jwtService.sign(payload, { secret: process.env.JWT_SECRET || 'jwt_secret', expiresIn: '15m' });
   }
 
-  private generateRefreshToken(company: CompanyEntity): string {
-    const payload = { sub: company.id };
-    return this.jwtService.sign(payload, {
-      secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
-      expiresIn: '7d',
-    });
+  private generateRefreshToken(company: CompanyEntity, req?: Request): string {
+    const fingerprint = req ? generateFingerprint(req) : undefined;
+    const payload: any = { sub: company.id };
+    if (fingerprint) payload.fingerprint = fingerprint;
+
+    return this.jwtService.sign(payload, { secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret', expiresIn: '7d' });
   }
 }

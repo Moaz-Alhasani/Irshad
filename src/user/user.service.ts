@@ -252,53 +252,69 @@ export class AuthService {
   }
 
 
-async getRecommendedJobs(userId: number) {
+
+ async getRecommendedJobs(userId: number) {
   const user = await this.userRepository.findOne({
     where: { id: userId },
     relations: ['resumes'],
   });
+
   if (!user) throw new NotFoundException('User not found');
-  if (!user.resumes || user.resumes.length === 0) {
+  if (!user.resumes || user.resumes.length === 0)
     throw new ForbiddenException('User does not have any resumes');
-  }
 
   const resume = user.resumes[0];
 
-  // تحويل البيانات المهمة إلى نص واحد
-  const resumeText = [
-    ...(resume.extracted_skills || []),
-    resume.experience_years ? `Experience: ${resume.experience_years} years` : ''
-  ].join(' ');
+  const resumeSummary = resume.summary || "";
+  const resumeSkills = resume.extracted_skills || [];
+  const resumeEducation = resume.education || [];
+  const resumeExperience = resume.experience_years
+    ? [`Experience: ${resume.experience_years} years`]
+    : [];
 
-  const allJobs = await this.jobsService.getAllJobsWithEmbedding();
+const resumeText = [
+  ...new Set([
+    ...resumeSkills,
+    ...resumeEducation,
+    resumeExperience ? `Experience: ${resumeExperience} years` : "",
+    resumeSummary,
+  ]),
+].join(' ');
 
-  // إرسال البيانات إلى Flask
-  const flaskRes = await axios.post<{ jobId: number; score: number }[]>(
-    'http://localhost:5000/get-similarity',
-    {
-      resume_text: resumeText,
-      jobs: allJobs.map(job => ({
-        id: job.id,
-        required: job.required || [],            // مطابق لفلستك
-        experience_years: job.requiredExperience || 0,
-      })),
-    }
-  );
 
-  // ترتيب الوظائف حسب التشابه
+  const allJobs = await this.jobsService.getAllJobs();
+  const jobsPayload = allJobs.map(job => ({
+    id: job.id,
+    title: job.title,
+    description: job.description,
+    requiredSkills: job.requiredSkills || [],
+    requiredEducation: job.requiredEducation || [],
+    requiredExperience: job.requiredExperience || 0,
+  }));
+
+
+const flaskRes = await axios.post<{ jobId: number; score: number }[]>(
+  'http://localhost:5000/get-similarity',
+  {
+    resume_text: resumeText,
+    resume_skills: resumeSkills,
+    resume_education: resumeEducation,
+    resume_experience: resumeExperience,
+    jobs: jobsPayload,
+  }
+); 
+
   const sortedJobs = flaskRes.data
     .sort((a, b) => b.score - a.score)
     .map(item => {
       const job = allJobs.find(j => j.id === item.jobId);
-      return {
-        ...job,
-        similarityScore: item.score,
-      };
+      return { ...job, similarityScore: item.score };
     });
 
   return sortedJobs;
 }
 
+ 
 
 
   // the settings for user 

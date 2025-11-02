@@ -55,16 +55,20 @@ async applyToJob(jobId: number, currentUser: any, createJobApplyDto: CreateJobAp
     user: { id: user.id },
     job: { id: job.id },
     resume,
-  });
+  }); 
 
   const savedApp = await this.jobApplyEntity.save(newApplication);
 
-  const salaryPayload = {
-    job_title: job.title,
-    age: user.age,
-    experience_years: resume.experience_years || 1,
-    education: resume.education.join(', '),
-  };
+const salaryPayload = {
+  job_title: job.title,
+  age: user.age,
+  experience_years: resume.experience_years || 1,
+  education: Array.isArray(resume.education) && resume.education.length
+    ? resume.education.join(', ')
+    : 'Bachelor',
+  skills: resume.extracted_skills || [],
+};
+
   const salaryResp = await axios.post<SalaryResponse>(
     'http://localhost:5000/predict-salary',
     salaryPayload,
@@ -93,15 +97,35 @@ async applyToJob(jobId: number, currentUser: any, createJobApplyDto: CreateJobAp
   };
 
  
-  const similarityResp = await axios.post<SimilarityScore[]>(
-    'http://localhost:5000/get-similarity',
-    similarityPayload,
-  );
+const similarityResp = await axios.post<SimilarityScore[]>(
+  'http://localhost:5000/get-similarity',
+  similarityPayload,
+);
 
-  savedApp.similarity_score =
-    similarityResp.data.find(s => s.jobId === jobId)?.score || 0;
+const similarityScore =
+  similarityResp.data.find(s => s.jobId === jobId)?.score || 0;
 
-  return this.jobApplyEntity.save(savedApp);
+savedApp.similarity_score = similarityScore;
+
+
+let finalSalary = Math.floor(salaryResp.data.estimated_salary / 10) * 10;
+if (similarityScore < 0.4) {
+
+  const adjustmentFactor = 0.7;
+  finalSalary = Math.floor(finalSalary * adjustmentFactor);
+} else if (similarityScore < 0.7) {
+
+  const adjustmentFactor = 0.85;
+  finalSalary = Math.floor(finalSalary * adjustmentFactor);
+} else {
+
+  finalSalary = finalSalary;
+}
+
+
+savedApp.estimated_salary = finalSalary;
+
+return this.jobApplyEntity.save(savedApp);
 }
 
 

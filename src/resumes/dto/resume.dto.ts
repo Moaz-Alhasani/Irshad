@@ -38,5 +38,7 @@ export class ResumeDto{
     @IsString({ each: true })
     extracted_skills: string[];
 
-
+    @IsNotEmpty()
+    @IsString({ each: true })
+    summary:string
 }

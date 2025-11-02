@@ -110,12 +110,9 @@ export class JobsController {
     return this.jobsService.deleteJob(id, actor);
   }
 
-  @Get()
-  async getJobs() {
-    return this.jobsService.getAllJobsWithEmbedding();
-  }
 
-  @Get('get-all-jobs')
+
+  @Get('')
   async getAllJobs(){
     return this.jobsService.getAllJobs();
   }

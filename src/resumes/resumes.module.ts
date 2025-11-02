@@ -7,10 +7,11 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 import { AuthModule } from 'src/user/user.module';
 import { forwardRef } from '@nestjs/common';
+import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 
 @Module({
 imports: [
-  TypeOrmModule.forFeature([ResumeEntity,UserEntity,JobApplyEntity]),
+  TypeOrmModule.forFeature([ResumeEntity,UserEntity,JobApplyEntity,CompanyEntity]),
   forwardRef(() => AuthModule),
 
 ],

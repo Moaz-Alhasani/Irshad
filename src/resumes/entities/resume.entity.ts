@@ -19,6 +19,9 @@ export class ResumeEntity {
   @Column()
   file_path: string;
 
+  @Column({ type: 'text', nullable: true })
+  summary: string;
+  
   @Column('simple-array', { nullable: true })
   extracted_skills: string[];
 

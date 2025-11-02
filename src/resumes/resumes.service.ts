@@ -7,24 +7,28 @@ import { existsSync, unlinkSync } from 'fs';
 import { ResumeDto } from './dto/resume.dto';
 import { UserEntity } from 'src/user/entities/user.entity';
 
+interface ParserOutput {
+  summary?: string;
+  full_name?: string;
+  skills?: string[];
+  education?: {
+    degree?: string;
+    university?: string;
+    major?: string;
+  };
+  experience_years?: number;
+  location?: string;
+  certifications?: string[];
+  languages?: string[];
+}
+
 interface FlaskResponse {
-  parser_output?: {
-    Skills?: string[];
-    Education?: string[];
-    Certifications?: string[];
-    Languages?: string[];
-  };
-  ner_entities?: {
-    PER?: string[];
-    LOC?: string[];
-    ORG?: string[];
-    MISC?: string[];
-  };
+  parser_output: ParserOutput;
   email?: string;
   phone?: string;
   estimated_experience_years?: number;
-  [key: string]: any;
 }
+
 
 @Injectable()
 export class ResumesService {
@@ -36,45 +40,91 @@ export class ResumesService {
   ) {}
 
 async sendToFlaskAndSave(filePath: string, userId: number) {
-    try {
-      const flaskResponse = await axios.post<FlaskResponse>(
-        'http://localhost:5000/analyze',
-        { file_path: filePath }
-      );
+  try {
+    console.log('Sending to Flask...', { filePath, userId });
 
-      const data = flaskResponse.data;
+    const flaskResponse = await axios.post<FlaskResponse>(
+      'http://localhost:5000/analyze', 
+      { file_path: filePath },
+      { timeout: 30000 } 
+    );
 
-      const combinedSkills = Array.from(
-        new Set([
-          ...(data.parser_output?.Skills || []),
-          ...(data.ner_entities?.MISC || []),
-        ])
-      );
+    console.log('Flask response status:', flaskResponse.status);
+    console.log('Flask response data:', JSON.stringify(flaskResponse.data, null, 2));
 
-      const university = data.ner_entities?.ORG?.[0] || null;
-      const location = data.ner_entities?.LOC?.[0] || null;
+    const data = flaskResponse.data;
+    const parser = data.parser_output || {};
 
-      const resume = this.resumeRepo.create({
-        file_path: filePath,
-        extracted_skills: combinedSkills,
-        education: data.parser_output?.Education || [],
-        certifications: data.parser_output?.Certifications || [],
-        languages: data.parser_output?.Languages?.length
-          ? data.parser_output.Languages
-          : ['Arabic'],
-        experience_years: data.estimated_experience_years || 0,
-        phone: data.phone || null,
-        university,
-        location,
-        user: { id: userId } as any,
-      } as DeepPartial<ResumeEntity>);
+    console.log(' Parsed data:', {
+      skills: parser.skills,
+      education: parser.education,
+      certifications: parser.certifications,
+      languages: parser.languages,
+      location: parser.location,
+      experience_years: parser.experience_years,
+      phone: data.phone,
+      email: data.email
+    });
 
-      return await this.resumeRepo.save(resume);
-    } catch (err: any) {
-      console.error("Error sending to Flask:", err.message);
-      throw err;
+    const resumeData = {
+      file_path: filePath,
+      summary: parser.summary || '',
+      extracted_skills: parser.skills || [],
+      education: this.formatEducation(parser.education),
+      certifications: parser.certifications || [],
+      languages: parser.languages?.length ? parser.languages : ['Arabic'],
+      experience_years: this.parseExperience(parser.experience_years || data.estimated_experience_years),
+      phone: data.phone || null,
+      university: parser.education?.university || null,
+      location: parser.location || null,
+      user: { id: userId } as any,
+    };
+
+    console.log('Saving resume data:', resumeData);
+
+    const resume = this.resumeRepo.create(resumeData as DeepPartial<ResumeEntity>);
+    const savedResume = await this.resumeRepo.save(resume);
+    
+    console.log('Saved Resume:', savedResume);
+    return savedResume;
+  } catch (err: any) {
+    console.error('Error sending to Flask:', err.message);
+    if (err.response) {
+      console.error(' Flask response error:', err.response.data);
     }
+    console.error('Full error:', err);
+    throw err;
   }
+}
+
+private formatEducation(education: any): string[] {
+  console.log('Formatting education:', education);
+  
+  if (!education || typeof education !== 'object') return [];
+  
+  const result = [
+    education.degree,
+    education.major, 
+    education.university
+  ].filter(Boolean) as string[];
+  
+  console.log('Formatted education:', result);
+  return result;
+}
+
+private parseExperience(experience: any): number {
+  console.log('Parsing experience:', experience);
+  
+  if (!experience || experience === "" || experience === "0") {
+    return 1;
+  }
+  if (typeof experience === 'string') {
+    const match = experience.match(/(\d+)/);
+    return match ? parseInt(match[1]) : 1;
+  }
+  return parseInt(experience) || 1;
+}
+
 
 
    async updateResume(id: number, newFilePath: string, userId: number) {

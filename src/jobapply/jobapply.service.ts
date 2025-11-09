@@ -11,6 +11,7 @@ import { CreateJobApplyDto } from './dto/createjobsdto';
 interface SalaryResponse {
   estimated_salary: number;
   monthly_salary: number;
+  similarity_score?: number; 
 }
 
 interface SimilarityScore {
@@ -34,22 +35,28 @@ async applyToJob(jobId: number, currentUser: any, createJobApplyDto: CreateJobAp
   const job = await this.jobEntity.findOne({ where: { id: jobId } });
   if (!job) throw new ForbiddenException(`Job with id ${jobId} does not exist`);
 
-  const user = await this.userEntity.findOne({
-    where: { id: currentUser.id },
-    relations: ['resumes'],
-  });
-  if (!user) throw new ForbiddenException('User does not exist');
-  if (!user.resumes?.length) throw new ForbiddenException('User has no resumes');
+ const user = await this.userEntity.findOne({
+      where: { id: currentUser.id },
+      relations: ['resumes'],
+    });
+    if (!user) throw new ForbiddenException('User does not exist');
+    if (!user.resumes?.length) throw new ForbiddenException('You must upload a resume before applying to a job');
 
-  const resume = user.resumes[0];
+    const resume = user.resumes[0];
 
   const existingApp = await this.jobApplyEntity.findOne({
     where: { job: { id: jobId }, user: { id: currentUser.id } },
+    relations: ['user', 'job', 'resume'],
   });
-  if (existingApp?.application_status === ApplicationStatus.PENDING)
-    throw new ForbiddenException('You already have a pending application');
-  if (existingApp?.application_status === ApplicationStatus.ACCEPTED)
-    throw new ForbiddenException('You are already accepted for this job');
+  console.log('Existing Application:', existingApp);
+ if (existingApp) {
+      if (
+        existingApp.application_status === ApplicationStatus.PENDING ||
+        existingApp.application_status === ApplicationStatus.ACCEPTED
+      ) {
+        throw new ForbiddenException('You already applied for this job. You can only reapply after your application is withdrawn or rejected.',);
+      }
+    }
 
   const newApplication = this.jobApplyEntity.create({
     user: { id: user.id },
@@ -59,74 +66,52 @@ async applyToJob(jobId: number, currentUser: any, createJobApplyDto: CreateJobAp
 
   const savedApp = await this.jobApplyEntity.save(newApplication);
 
-const salaryPayload = {
-  job_title: job.title,
-  age: user.age,
-  experience_years: resume.experience_years || 1,
-  education: Array.isArray(resume.education) && resume.education.length
-    ? resume.education.join(', ')
-    : 'Bachelor',
-  skills: resume.extracted_skills || [],
-};
+  const salaryPayload = {
+    candidate_skills: resume.extracted_skills || [],
+    candidate_experience: resume.experience_years || 1,
+    candidate_education: Array.isArray(resume.education) && resume.education.length
+      ? resume.education
+      : ['Bachelor'],
+
+    job_title: job.title,
+    job_required_skills: job.requiredSkills || [],
+    job_required_experience: job.requiredExperience || 0,
+  };
 
   const salaryResp = await axios.post<SalaryResponse>(
     'http://localhost:5000/predict-salary',
     salaryPayload,
   );
+
   savedApp.estimated_salary = Math.floor(salaryResp.data.estimated_salary / 10) * 10;
-
-
   const resumeText = [
     ...(resume.extracted_skills || []),
     resume.experience_years ? `Experience: ${resume.experience_years} years` : '',
     ...(resume.education || []),
   ].join(' ');
 
-
-  const allJobs = await this.jobEntity.find({
-    select: ['id', 'requiredSkills', 'requiredExperience'],
-  });
-
-  const similarityPayload = {
-    resume_text: resumeText,
-    jobs: allJobs.map(j => ({
-      id: j.id,
-      required: j.requiredSkills?.map(s => s.trim()) || [],
-      experience_years: j.requiredExperience || 0,
-    })),
-  };
-
- 
-const similarityResp = await axios.post<SimilarityScore[]>(
-  'http://localhost:5000/get-similarity',
-  similarityPayload,
-);
-
-const similarityScore =
-  similarityResp.data.find(s => s.jobId === jobId)?.score || 0;
-
-savedApp.similarity_score = similarityScore;
+const allJobs = await this.jobEntity.find({
+  select: ['id', 'title', 'description', 'requiredSkills', 'requiredExperience', 'requiredEducation'],
+});
 
 
-let finalSalary = Math.floor(salaryResp.data.estimated_salary / 10) * 10;
-if (similarityScore < 0.4) {
 
-  const adjustmentFactor = 0.7;
-  finalSalary = Math.floor(finalSalary * adjustmentFactor);
-} else if (similarityScore < 0.7) {
+  const similarityScore = salaryResp.data.similarity_score || 0;
 
-  const adjustmentFactor = 0.85;
-  finalSalary = Math.floor(finalSalary * adjustmentFactor);
-} else {
+  savedApp.similarity_score = similarityScore;
+  savedApp.ranking_score=similarityScore
+  let finalSalary = Math.floor(salaryResp.data.estimated_salary / 10) * 10;
+  if (similarityScore < 0.4) {
+    finalSalary = Math.floor(finalSalary * 0.7);
+  } else if (similarityScore < 0.7) {
+    finalSalary = Math.floor(finalSalary * 0.85);
+  }
 
-  finalSalary = finalSalary;
+  savedApp.estimated_salary = finalSalary;
+
+  return this.jobApplyEntity.save(savedApp);
 }
 
-
-savedApp.estimated_salary = finalSalary;
-
-return this.jobApplyEntity.save(savedApp);
-}
 
 
 

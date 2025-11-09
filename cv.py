@@ -8,11 +8,11 @@ import google.generativeai as genai
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
-    raise ValueError("❌ GEMINI_API_KEY not found in .env file")
+    raise ValueError("GEMINI_API_KEY not found in .env file")
 genai.configure(api_key=api_key)
 
 
-# -------------------- دوال مساعدة --------------------
+
 def extract_text_from_pdf(path):
     with pdfplumber.open(path) as pdf:
         text = "\n".join(page.extract_text() or '' for page in pdf.pages)
@@ -92,7 +92,7 @@ Rules:
     response = model.generate_content(prompt)
     raw_output = response.text.strip()
 
-    # 🧠 نحاول استخراج الـJSON من النص
+
     match = re.search(r"\{[\s\S]*\}", raw_output)
     if match:
         raw_output = match.group(0)
@@ -103,7 +103,6 @@ Rules:
         print("Gemini output invalid JSON:\n", raw_output)
         return {}
 
-# -------------------- تحليل السيرة --------------------
 def analyze_resume_with_gemini(file_path):
     print("Extracting text from PDF...")
     resume_text = extract_text_from_pdf(file_path)

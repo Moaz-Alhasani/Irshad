@@ -41,6 +41,17 @@ export class ResumesService {
 
 async sendToFlaskAndSave(filePath: string, userId: number) {
   try {
+
+     const existingResume = await this.resumeRepo.findOne({
+        where: { user: { id: userId } },
+      });
+
+      if (existingResume) {
+        if (existsSync(filePath)) unlinkSync(filePath);
+          throw new ForbiddenException(
+            'You have already uploaded a resume.',
+          );
+      }
     console.log('Sending to Flask...', { filePath, userId });
 
     const flaskResponse = await axios.post<FlaskResponse>(

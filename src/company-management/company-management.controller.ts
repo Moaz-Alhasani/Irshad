@@ -40,7 +40,7 @@ export class CompanyManagementController {
     return this.companyManagementService.updateCompany(id, updateDto, logoPath);
   }
 
-  @Post('login')
+  @Post('company-login')
   async LoginCompany(@Body() companylogindto: LoginCompanyDto, @Req() req: Request) {
     return this.companyManagementService.LoginComapny(companylogindto, req);
   }

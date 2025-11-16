@@ -72,10 +72,10 @@ export class UserEntity {
   })
   role: UserRole;
 
-  @ManyToOne(() => CompanyEntity, (company) => company.employees, {
-    nullable: true,
-    onDelete: 'SET NULL',
-  })
+  // @ManyToOne(() => CompanyEntity, (company) => company.employees, {
+  //   nullable: true,
+  //   onDelete: 'SET NULL',
+  // })
   @JoinColumn({ name: 'company_id' })
   company: CompanyEntity;
 

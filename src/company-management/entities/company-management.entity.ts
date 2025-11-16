@@ -26,8 +26,8 @@ export class CompanyEntity {
   @Column({ name: 'company_password', type: 'text' })
   password: string;
 
-  @OneToMany(() => UserEntity, (user) => user.company)
-  employees: UserEntity[];
+  // @OneToMany(() => UserEntity, (user) => user.company)
+  // employees: UserEntity[];
 
   @OneToMany(() => JobEntity, (job) => job.company)
   jobs: JobEntity[];

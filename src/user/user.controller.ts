@@ -61,11 +61,11 @@ export class AuthController {
     const fingerprint = generateFingerprint(req);
     const { user, accessToken, refreshToken } = await this.authservice.login(loginDto,fingerprint);
     res.cookie('accessToken', accessToken, {
-    httpOnly: true, 
-    secure: true,   
-    sameSite: 'strict',
+    httpOnly: false,  
+    secure: false,   
+    sameSite: 'lax',
     maxAge: 1000 * 60 * 60, 
-  });
+  }); 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: true,
@@ -74,7 +74,7 @@ export class AuthController {
   });
     return {
       user,
-      accessToken,
+      accessToken, 
       message: 'Login successful',
     };
   }
@@ -192,7 +192,7 @@ export class AuthController {
 @UseGuards(JwtAuthGuard) 
 async verifyOtpForEmail(
   @CurrentUser() currentUser: any,
-  @Body('otp') otp: string,
+  @Body('otp') otp: string, 
   @Req() req : Request,
   @Res({ passthrough: true }) res: Response,
 ) {

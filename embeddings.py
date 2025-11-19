@@ -15,4 +15,4 @@ def compute_embedding(texts):
     if embeddings.ndim == 1:
         embeddings = np.expand_dims(embeddings, axis=0)
 
-    return embeddings
+    return embeddings 

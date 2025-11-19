@@ -114,7 +114,7 @@ export class JobsController {
 
   @Get('')
   async getAllJobs(){
-    return this.jobsService.getAllJobs();
+    return this.jobsService.getAllJobs(); 
   }
 
 @Get('search')

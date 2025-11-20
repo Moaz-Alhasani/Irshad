@@ -12,7 +12,7 @@ async function bootstrap() {
 
   // ✅ تفعيل CORS للسماح للواجهة الأمامية بالوصول
   app.enableCors({
-    origin: ['http://localhost:3001',"http://localhost:3000",'http://192.168.1.9:3001',"http://192.168.1.9:3000","http://192.168.1.5:3000","http://192.168.1.5:3000"], // أو استخدم مصفوفة للسماح بعدة مصادر
+    origin: ['http://localhost:3001',"http://localhost:3000",'http://192.168.1.108:3001',"http://192.168.1.108:3000","http://192.168.1.5:3000","http://192.168.1.5:3000"], // أو استخدم مصفوفة للسماح بعدة مصادر
     credentials: true, // للسماح بإرسال الكوكيز
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

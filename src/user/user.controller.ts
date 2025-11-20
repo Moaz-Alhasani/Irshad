@@ -45,7 +45,7 @@ export class AuthController {
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'strict',
+      sameSite: 'none',
       maxAge: 1000 * 60 * 3,
     });
 
@@ -61,15 +61,15 @@ export class AuthController {
     const fingerprint = generateFingerprint(req);
     const { user, accessToken, refreshToken } = await this.authservice.login(loginDto,fingerprint);
     res.cookie('accessToken', accessToken, {
-    httpOnly: false,  
-    secure: false,   
-    sameSite: 'lax',
+    httpOnly: true,  
+    secure: true,   
+    sameSite: 'none',
     maxAge: 1000 * 60 * 60, 
   }); 
   res.cookie('refreshToken', refreshToken, {
     httpOnly: true,
     secure: true,
-    sameSite: 'strict',
+    sameSite: 'none',
     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 أيام
   });
     return {
@@ -104,7 +104,7 @@ export class AuthController {
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: true, 
-      sameSite: 'strict',
+      sameSite: 'none', 
       maxAge: 15 * 60 * 1000,
     });
     return { message: 'Access token refreshed' };
@@ -205,7 +205,7 @@ async verifyOtpForEmail(
     res.cookie('accessToken', result.tokens.accessToken, {
       httpOnly: true,
       secure: true,
-      sameSite: 'strict',
+      sameSite: 'none',
       maxAge: 1000 * 60 * 60 * 24,
     });
   }

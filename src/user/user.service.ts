@@ -383,7 +383,7 @@ const flaskRes = await axios.post<{ jobId: number; score: number }[]>(
 
 
 public async sendOtp(userEmail: string) {
-    const otp = otpGenerator.generate(6, {
+    const otp = otpGenerator.generate(5, {
       upperCaseAlphabets: false,
       lowerCaseAlphabets: false,
       digits: true,

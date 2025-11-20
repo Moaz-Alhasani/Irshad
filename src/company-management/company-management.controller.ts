@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { Controller, Get, Post, Body, Param, Put, UseGuards, UseInterceptors, UploadedFile, ParseIntPipe, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, UseGuards, UseInterceptors, UploadedFile, ParseIntPipe, Req, Res } from '@nestjs/common';
 import { CompanyManagementService } from './company-management.service';
 import { CreateCompanyManagementDto } from './dto/create-company-management.dto';
 import { UpdateCompanyManagementDto } from './dto/update-company-management.dto';
@@ -11,21 +11,46 @@ import { LoginCompanyDto } from './dto/loginCompany.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { CompanyRole } from './entities/company-management.entity';
+import { generateFingerprint } from 'src/utils/fingerprint';
+import {  Response } from 'express';
 
 @Controller('company-management')
 export class CompanyManagementController {
   constructor(private readonly companyManagementService: CompanyManagementService) {}
 
-  @Post('company-register')
+@Post('company-register')
   @UseInterceptors(FileInterceptor('companyLogo', {
     storage: diskStorage({
       destination: './uploads/company-logos',
       filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`),
     }),
   }))
-  async createCompany(@Body() createCompanyDto: CreateCompanyManagementDto, @UploadedFile() file: Express.Multer.File) {
-    const logoPath = file ? `uploads/company-logos/${file.filename}` : undefined;
-    return this.companyManagementService.RegisterAsCompany(createCompanyDto, logoPath);
+  async createCompany(
+    @Body() createCompanyDto: CreateCompanyManagementDto,
+    @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const logoPath = file ? `uploads/company-logos/${file.filename}` : null;
+    const fingerprint = generateFingerprint(req);
+
+    const { company, accessToken, refreshToken } =
+      await this.companyManagementService.RegisterAsCompany(createCompanyDto, logoPath, fingerprint);
+
+    res.cookie('accessToken', accessToken, 
+      { httpOnly: true,
+         secure: true,
+          sameSite: 'none',
+           maxAge: 1000 * 60 * 15 
+          });
+    res.cookie('refreshToken', refreshToken, 
+      { httpOnly: true,
+         secure: true,
+          sameSite: 'none',
+           maxAge: 7 * 24 * 60 * 60 * 1000 
+      });
+
+    return { company, message: 'Registration successful' };
   }
 
   @Put('update/:id')
@@ -40,10 +65,36 @@ export class CompanyManagementController {
     return this.companyManagementService.updateCompany(id, updateDto, logoPath);
   }
 
-  @Post('company-login')
-  async LoginCompany(@Body() companylogindto: LoginCompanyDto, @Req() req: Request) {
-    return this.companyManagementService.LoginComapny(companylogindto, req);
-  }
+@Post('company-login')
+async LoginCompany(
+  @Body() companylogindto: LoginCompanyDto,
+  @Req() req: Request,
+  @Res({ passthrough: true }) res: Response,
+) {
+  const fingerprint = generateFingerprint(req);
+
+  const { user, accessToken, refreshToken } =
+    await this.companyManagementService.LoginComapny(companylogindto, fingerprint);
+
+  res.cookie('accessToken', accessToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 1000 * 60 * 15,
+  });
+
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+
+  return {
+    user,
+    message: 'Login successful',
+  };
+}
 
   @Get(':id/jobs')
   @UseGuards(JwtAuthGuard)

@@ -36,9 +36,13 @@ export class CompanyManagementService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async RegisterAsCompany(createCompanyDto: CreateCompanyManagementDto, logoPath?: string) {
+  async RegisterAsCompany(
+    createCompanyDto: CreateCompanyManagementDto,
+    logoPath: string | null,
+    fingerprint: string
+  ) {
     const oldCompany = await this.companyRepository.findOne({ where: { email: createCompanyDto.email } });
-    if (oldCompany) throw new ForbiddenException(`Company with ${oldCompany.email} is already registered`);
+    if (oldCompany) throw new ForbiddenException(`Company with ${oldCompany.email} already exists`);
 
     const hashedPassword = await this.authService.hashPassword(createCompanyDto.password);
 
@@ -52,15 +56,15 @@ export class CompanyManagementService {
     });
 
     const savedCompany = await this.companyRepository.save(newCompany);
+    const tokens = this.generateToken(savedCompany, fingerprint);
     const { password, ...companyWithoutPassword } = savedCompany;
 
-    const token = this.generateToken(savedCompany);
     return {
       company: companyWithoutPassword,
-      ...token,
-      message: `Welcome ${savedCompany.companyName} to our app`,
+      ...tokens,
     };
   }
+
 
   async updateCompany(id: number, updateDto: UpdateCompanyManagementDto, logoPath?: string) {
     const company = await this.companyRepository.findOne({ where: { id } });
@@ -76,18 +80,27 @@ export class CompanyManagementService {
     return this.companyRepository.save(company);
   }
 
-  async LoginComapny(companyDto: LoginCompanyDto, req?: Request) {
-    const oldCompany = await this.companyRepository.findOne({ where: { email: companyDto.email } });
-    if (!oldCompany) throw new ForbiddenException(`Company with ${companyDto.email} does not exist`);
+  async LoginComapny(companyDto: LoginCompanyDto, fingerprint: string) {
+  const oldCompany = await this.companyRepository.findOne({
+    where: { email: companyDto.email },
+  });
+  if (!oldCompany) throw new ForbiddenException('Company not found');
 
-    const matchedPassword = await this.authService.verifyPassword(companyDto.password, oldCompany.password);
-    if (!matchedPassword) throw new ForbiddenException('Invalid password');
+  const matchedPassword = await this.authService.verifyPassword(
+    companyDto.password,
+    oldCompany.password,
+  );
+  if (!matchedPassword) throw new ForbiddenException('Invalid password');
 
-    const tokens = this.generateToken(oldCompany, req);
-    const { password, ...userWithoutPassword } = oldCompany;
+  const tokens = this.generateToken(oldCompany, fingerprint);
 
-    return { user: userWithoutPassword, ...tokens };
-  }
+  const { password, ...companyWithoutPassword } = oldCompany;
+
+  return {
+    user: companyWithoutPassword,
+    ...tokens,
+  };
+}
 
   async getCompanyJobs(companyId: number) {
     const company = await this.companyRepository.findOne({ where: { id: companyId }, relations: ['jobs'] });
@@ -146,26 +159,37 @@ export class CompanyManagementService {
     return { message: 'User application rejected', application: jobApplication };
   }
 
-  private generateToken(company: CompanyEntity, req?: Request) {
-    return {
-      accessToken: this.generateAccessToken(company, req),
-      refreshToken: this.generateRefreshToken(company, req),
-    };
-  }
+  private generateToken(company: CompanyEntity, fingerprint: string) {
+  return {
+    accessToken: this.generateAccessToken(company, fingerprint),
+    refreshToken: this.generateRefreshToken(company, fingerprint),
+  };
+}
 
-  private generateAccessToken(company: CompanyEntity, req?: Request): string {
-    const fingerprint = req ? generateFingerprint(req) : undefined;
-    const payload: any = { sub: company.id, email: company.email, role: company.role };
-    if (fingerprint) payload.fingerprint = fingerprint;
+private generateAccessToken(company: CompanyEntity, fingerprint: string): string {
+  const payload = {
+    sub: company.id,
+    email: company.email,
+    role: company.role,
+    fingerprint,
+  };
 
-    return this.jwtService.sign(payload, { secret: process.env.JWT_SECRET || 'jwt_secret', expiresIn: '15m' });
-  }
+  return this.jwtService.sign(payload, {
+    secret: process.env.JWT_SECRET || 'jwt_secret',
+    expiresIn: '15m',
+  });
+}
 
-  private generateRefreshToken(company: CompanyEntity, req?: Request): string {
-    const fingerprint = req ? generateFingerprint(req) : undefined;
-    const payload: any = { sub: company.id };
-    if (fingerprint) payload.fingerprint = fingerprint;
+private generateRefreshToken(company: CompanyEntity, fingerprint: string): string {
+  const payload = {
+    sub: company.id,
+    fingerprint,
+  };
 
-    return this.jwtService.sign(payload, { secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret', expiresIn: '7d' });
-  }
+  return this.jwtService.sign(payload, {
+    secret: process.env.JWT_REFRESH_SECRET || 'refresh-secret',
+    expiresIn: '7d',
+  });
+}
+
 }

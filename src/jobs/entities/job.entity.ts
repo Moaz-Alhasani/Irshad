@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
+import { QuestionEntity } from './question.entity';
 
 
 export enum EmploymentType {
@@ -58,6 +59,13 @@ export class JobEntity {
 
   @Column({ nullable: true })
   image: string;
+
+  @OneToMany(() => QuestionEntity, (q) => q.job, {
+    cascade: true,
+    eager: true,
+  })
+  questions: QuestionEntity[];
+
 
   @Column('jsonb', { nullable: true })
   embedding: number[];

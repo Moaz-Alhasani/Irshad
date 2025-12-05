@@ -24,6 +24,7 @@ import { UserRole } from 'src/user/entities/user.entity';
 import { RolesGuard } from 'src/user/guards/roles-guard';
 import { CompanyRole } from 'src/company-management/entities/company-management.entity';
 import { SearchJobDto } from './dto/job_filter_dto';
+import { CreateQuestionDto } from './dto/create-question.dto';
 
 export function ImageFileInterceptor(fieldName: string) {
   return UseInterceptors(
@@ -89,6 +90,22 @@ export class JobsController {
     return this.jobsService.createJob(createJobDto, companyId, user);
   }
 
+
+  @Roles(CompanyRole.COMPANY)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Post(':jobId/questions')
+  async addQuestion(
+    @Param('jobId') jobId: number,
+    @Body() createQuestionDto: CreateQuestionDto,
+  ) {
+    return this.jobsService.addQuestion(jobId, createQuestionDto);
+  }
+
+
+@Get(':jobId/shuffled-questions')
+async getShuffledQuestions(@Param('jobId') jobId: number) {
+  return this.jobsService.getShuffledJobQuestions(jobId);
+}
   @Roles(CompanyRole.COMPANY)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Put(':id')

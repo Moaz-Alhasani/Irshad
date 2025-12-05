@@ -8,6 +8,9 @@ import { UserRole } from 'src/user/entities/user.entity';
 import { CompanyRole } from 'src/company-management/entities/company-management.entity';
 import axios from 'axios';
 import { SearchJobDto } from './dto/job_filter_dto';
+import { CreateQuestionDto } from './dto/create-question.dto';
+import { QuestionEntity } from './entities/question.entity';
+import { OptionEntity } from './entities/option.entity';
 
 interface FlaskEmbeddingResponse {
   embedding: number[];
@@ -20,6 +23,10 @@ export class JobsService {
     private readonly jobRepository: Repository<JobEntity>,
     @InjectRepository(CompanyEntity)
     private readonly companyRepository: Repository<CompanyEntity>,
+    @InjectRepository(QuestionEntity)
+    private readonly questionRepository: Repository<QuestionEntity>,
+    @InjectRepository(OptionEntity)
+    private readonly optionRepository: Repository<OptionEntity>,
   ) {}
 
 async createJob(createJobDto: CreateJobDto, companyId: number, company: any): Promise<JobEntity> {
@@ -46,6 +53,57 @@ async createJob(createJobDto: CreateJobDto, companyId: number, company: any): Pr
   return await this.jobRepository.save(job);
 }
 
+
+async addQuestion(jobId: number, createQuestionDto: CreateQuestionDto) {
+    const job = await this.jobRepository.findOne({ where: { id: jobId } });
+    if (!job) throw new NotFoundException('Job not found');
+
+    const question = this.questionRepository.create({
+      questionText: createQuestionDto.questionText,
+      job,
+    });
+
+    const savedQuestion = await this.questionRepository.save(question);
+
+    const options = createQuestionDto.options.map(opt =>
+      this.optionRepository.create({
+        text: opt.text,
+        isCorrect: opt.isCorrect,
+        question: savedQuestion,
+      }),
+    );
+
+    savedQuestion.options = await this.optionRepository.save(options);
+
+    return { message: 'Questions Added successfully' };
+  }
+
+async getShuffledJobQuestions(jobId: number) {
+  const job = await this.jobRepository.findOne({
+    where: { id: jobId },
+    relations: ['questions', 'questions.options'],
+  });
+  if (!job) throw new NotFoundException('Job not found');
+  const shuffleArray = <T>(array: T[]): T[] => {
+    const arr = [...array];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  };
+  return job.questions.map(q => ({
+    id: q.id,
+    questionText: q.questionText,
+    options: shuffleArray(
+      q.options.map(o => ({
+        id: o.id,
+        text: o.text,
+        isCorrect: o.isCorrect, 
+      }))
+    ),
+  }));
+}
 
   async updateJob(id: number, updateDto: Partial<CreateJobDto>, company: any): Promise<JobEntity> {
     const job = await this.jobRepository.findOne({ where: { id }, relations: ['company'] });

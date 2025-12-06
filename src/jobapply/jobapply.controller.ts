@@ -20,7 +20,12 @@ export class JobapplyController {
         @Body() createjobapplydto: CreateJobApplyDto,
         @CurrentUser() currentuser: any
     ) {
-        return this.jobsservice.applyToJob(jobid, currentuser, createjobapplydto);
+       const savedApplication =this.jobsservice.applyToJob(jobid, currentuser, createjobapplydto);
+        return {
+            message: "You applied for this job successfully",
+            acceptance_score: (await savedApplication).acceptance_score,
+            salary:(await savedApplication).estimated_salary+"$"
+        };
     }
 
     @Post('withdrawjobs/:jobid')
@@ -31,4 +36,23 @@ export class JobapplyController {
     ){
         return this.jobsservice.withdraw(jobid,currentuser)
     }
+
+    
+    @Roles(UserRole.JOB_SEEKER)
+    @UseGuards(JwtAuthGuard,RolesGuard)
+    @Post(':jobId/test')
+        async getJobTest(@Param('jobId') jobId: number, @CurrentUser() user: any) {
+        return this.jobsservice.getJobTest(jobId, user.id);
+    }
+    @Roles(UserRole.JOB_SEEKER)
+    @UseGuards(JwtAuthGuard,RolesGuard)
+    @Post(':jobId/test/submit')
+        async submitJobTest(
+        @Param('jobId') jobId: number,
+        @CurrentUser() user: any,
+        @Body('answers') answers: { questionId: number; selectedOptionId: number }[],
+        ) {
+        return this.jobsservice.submitJobTest(jobId, user.id, answers);
+    }
+
 }

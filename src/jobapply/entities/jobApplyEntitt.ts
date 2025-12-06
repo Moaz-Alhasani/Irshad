@@ -11,12 +11,15 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { JobEntity } from 'src/jobs/entities/job.entity';
 import { ResumeEntity } from 'src/resumes/entities/resume.entity';
 import {  InterviewEntity } from 'src/interview/entities/interview.entity';
+import { JobTestAnswerEntity } from './jobTestAnswer.entity';
 
 export enum ApplicationStatus {
     PENDING = 'pending',
     ACCEPTED = 'accepted',
     REJECTED = 'rejected',
-    WITHDRAWN = 'withdrawn'
+    WITHDRAWN = 'withdrawn',
+    TEST_PENDING = 'test_pending', 
+    TEST_COMPLETED = 'test_completed',
 }
 
 @Entity({ name: 'job_apply' })
@@ -54,6 +57,12 @@ export class JobApplyEntity {
 
     @Column({ type: 'float', nullable: true })
     ranking_score: number;
+
+    @Column({ type: 'float', nullable: true })
+    acceptance_score: number;
+
+    @OneToMany(() => JobTestAnswerEntity, answer => answer.application, { cascade: true })
+    testAnswers: JobTestAnswerEntity[];
 
     @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
     createdAt: Date;

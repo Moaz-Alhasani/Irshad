@@ -17,6 +17,7 @@ import { InterviewModule } from './interview/interview.module';
 import { InterviewEntity } from './interview/entities/interview.entity';
 import { QuestionEntity } from './jobs/entities/question.entity';
 import { OptionEntity } from './jobs/entities/option.entity';
+import { JobTestAnswerEntity } from './jobapply/entities/jobTestAnswer.entity';
 
 
 @Module({
@@ -32,7 +33,7 @@ import { OptionEntity } from './jobs/entities/option.entity';
         username: configService.get<string>('DB_USER'),
         password: configService.get<string>('DB_PASSWORD'), 
         database: configService.get<string>('DB_NAME'),
-        entities: [UserEntity,CompanyEntity,JobEntity,ResumeEntity,JobApplyEntity,InterviewEntity,QuestionEntity,OptionEntity],
+        entities: [UserEntity,CompanyEntity,JobEntity,ResumeEntity,JobApplyEntity,InterviewEntity,QuestionEntity,JobTestAnswerEntity,OptionEntity],
         synchronize: true,
       }),
     }),

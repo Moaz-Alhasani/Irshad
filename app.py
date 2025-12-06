@@ -300,5 +300,43 @@ def predict_salary_endpoint():
 
 
 
+
+
+def text_similarity_embeddings(t1: str, t2: str):
+    if not t1 or not t2:
+        return 0.0
+    emb = embedder.encode([t1, t2], convert_to_tensor=True)
+    sim = util.cos_sim(emb[0], emb[1]).item()
+    return float(sim)
+
+
+@app.route("/predict-acceptance", methods=["POST"])
+def predict_acceptance():
+    data = request.get_json()
+
+    candidate_skills = data.get("candidate_skills", [])
+    job_title = data.get("job_title", "")
+    job_required_skills = data.get("job_required_skills", [])
+    job_description = data.get("job_description", "")
+
+
+    matched = match_skills(candidate_skills, job_required_skills)
+    skill_match_score = len(matched) / len(job_required_skills) if job_required_skills else 1.0
+
+    resume_text = " ".join(candidate_skills)
+    desc_score = text_similarity_embeddings(resume_text, job_description)
+    title_score = text_similarity_embeddings(resume_text, job_title)
+
+    acceptance_score = (
+        (skill_match_score * 0.6) +
+        (title_score * 0.20) +
+        (desc_score * 0.20)
+    )
+
+    return jsonify({
+        "acceptance_score": round(float(acceptance_score), 3),
+        "matched_skills": matched
+    })
+
 if __name__ == "__main__":
     app.run(port=5000, debug=False, use_reloader=False)

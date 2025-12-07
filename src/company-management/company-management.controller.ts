@@ -13,6 +13,7 @@ import { diskStorage } from 'multer';
 import { CompanyRole } from './entities/company-management.entity';
 import { generateFingerprint } from 'src/utils/fingerprint';
 import {  Response } from 'express';
+import { UserRole } from 'src/user/entities/user.entity';
 
 @Controller('company-management')
 export class CompanyManagementController {
@@ -127,4 +128,13 @@ async LoginCompany(
   async rejectTheUseraftertheinterview(@Param('userid', ParseIntPipe) userid: number) {
     return this.companyManagementService.rejectTheUseraftertheinterviewservice(userid);
   }
+
+  
+  @Get('companyCount')
+  @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async getCompanyCount(){
+    return this.companyManagementService.getcompanycount()
+  }
+
 }

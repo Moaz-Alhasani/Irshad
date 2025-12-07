@@ -537,4 +537,19 @@ public async SearchOfUser(username: string): Promise<UserEntity> {
   public async resendOtp(userEmail: string) {
     return this.sendOtp(userEmail);
   }
+
+  public async numberOfUsers(): Promise<number> {
+    return await this.userRepository.count({
+      where: { role: UserRole.JOB_SEEKER },
+    });
+  }
+
+  public async numberOfAdmins(): Promise<number> {
+  return await this.userRepository.count({
+    where: [
+      { role: UserRole.ADMIN },
+      { role: UserRole.SUPER_ADMIN },
+    ],
+  });
+}
 }

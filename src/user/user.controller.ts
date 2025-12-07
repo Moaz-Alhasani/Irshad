@@ -288,5 +288,16 @@ async searchofuser(@Body('username') username: string) {
     return this.authservice.undisable(id);
   }
 
-  
+  @Get('count_jobseekers')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getNumberOfUsers() {
+    return await this.authservice.numberOfUsers();
+  }
+  @Get('admins_count')
+  @Roles(UserRole.SUPER_ADMIN) 
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getNumberOfAdmins() {
+    return await this.authservice.numberOfAdmins();
+  }
 }

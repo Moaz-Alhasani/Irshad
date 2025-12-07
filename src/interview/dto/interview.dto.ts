@@ -1,3 +1,4 @@
+
 import { IsEmail, IsNotEmpty, IsString, IsUrl } from 'class-validator';
 
 export class SendInterviewLinkDto {

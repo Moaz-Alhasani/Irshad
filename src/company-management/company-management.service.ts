@@ -192,4 +192,8 @@ private generateRefreshToken(company: CompanyEntity, fingerprint: string): strin
   });
 }
 
+public async getcompanycount():Promise<number>{
+  return await this.companyRepository.count();
+}
+
 }

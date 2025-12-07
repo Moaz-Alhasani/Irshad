@@ -25,6 +25,7 @@ import { RolesGuard } from 'src/user/guards/roles-guard';
 import { CompanyRole } from 'src/company-management/entities/company-management.entity';
 import { SearchJobDto } from './dto/job_filter_dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
+import { jwtStrategy } from 'src/user/strategies/jwt.strategy';
 
 export function ImageFileInterceptor(fieldName: string) {
   return UseInterceptors(
@@ -142,5 +143,13 @@ async searchjobs(
 ) {
   return this.jobsService.searchJobs({ title, location, jobType });
 }
+
+  @Get('count-jobs')
+  @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async getNumberOfJobs(){
+    return this.jobsService.getjobsCount();
+  }
+
 }
 

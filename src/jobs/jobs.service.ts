@@ -173,4 +173,8 @@ async getShuffledJobQuestions(jobId: number) {
   return allJobs;
 }
 
+public async getjobsCount():Promise<number>{
+  return await this.jobRepository.count();
+}
+
 }

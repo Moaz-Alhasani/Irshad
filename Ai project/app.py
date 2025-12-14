@@ -30,7 +30,8 @@ embedder = SentenceTransformer(r'D:\all-mpnet-base-v2')
 @app.route("/analyze", methods=["POST"])
 def analyze():
     try:
-        data = request.get_json()
+        data = request.get_json(silent=True)
+
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
             
@@ -70,7 +71,7 @@ def analyze():
         
     except Exception as e:
         print(f"Error in analyze route: {str(e)}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": "Internal server error"}), 500
     
 
 modelembe = SentenceTransformer(r'D:\multi-qa-mpnet-base-dot-v1')

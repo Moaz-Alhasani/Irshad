@@ -12,6 +12,7 @@ import { CreateQuestionDto } from './dto/create-question.dto';
 import { QuestionEntity } from './entities/question.entity';
 import { OptionEntity } from './entities/option.entity';
 import { JobResponseDto } from './dto/JobResponse.dto';
+import { JobDetailDto } from './dto/job-details.dto';
 
 interface FlaskEmbeddingResponse {
   embedding: number[];
@@ -105,6 +106,20 @@ async getShuffledJobQuestions(jobId: number) {
     ),
   }));
 }
+  
+  async getJobDetails(id: number): Promise<JobDetailDto> {
+    const job = await this.jobRepository.findOne({
+      where: { id },
+      relations: ['company', 'questions', 'questions.options'],
+    });
+
+    if (!job) {
+      throw new NotFoundException(`Job with ID ${id} not found`);
+    }
+
+    // لا حاجة لحذف الحقول هنا، DTO سيتعامل معها
+    return new JobDetailDto(job);
+  }
 
   async updateJob(id: number, updateDto: Partial<CreateJobDto>, company: any): Promise<JobEntity> {
     const job = await this.jobRepository.findOne({ where: { id }, relations: ['company'] });

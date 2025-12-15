@@ -10,6 +10,7 @@ import {
   UseInterceptors,
   UploadedFile,
   Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { CreateJobDto } from './dto/create-job.dto';
@@ -26,6 +27,7 @@ import { CompanyRole } from 'src/company-management/entities/company-management.
 import { SearchJobDto } from './dto/job_filter_dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { jwtStrategy } from 'src/user/strategies/jwt.strategy';
+import { JobDetailDto } from './dto/job-details.dto';
 
 export function ImageFileInterceptor(fieldName: string) {
   return UseInterceptors(
@@ -113,7 +115,7 @@ async getShuffledQuestions(@Param('jobId') jobId: number) {
   @ImageFileInterceptor('img')
   async updateJob(
     @Param('id') id: number,
-    @Body() body: any,
+    @Body() body: any, 
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() company: any,
   ) {
@@ -135,14 +137,14 @@ async getShuffledQuestions(@Param('jobId') jobId: number) {
     return this.jobsService.getAllJobs(); 
   }
 
-@Get('search')
-async searchjobs(
-  @Query('title') title?: string,
-  @Query('location') location?: string,
-  @Query('jobType') jobType?: string,
-) {
-  return this.jobsService.searchJobs({ title, location, jobType });
-}
+  @Get('search')
+  async searchjobs(
+    @Query('title') title?: string,
+    @Query('location') location?: string,
+    @Query('jobType') jobType?: string,
+  ) {
+    return this.jobsService.searchJobs({ title, location, jobType });
+  }
 
   @Get('count-jobs')
   @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN)
@@ -150,6 +152,15 @@ async searchjobs(
   async getNumberOfJobs(){
     return this.jobsService.getjobsCount();
   }
+
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  async getJobDetails(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<JobDetailDto> {
+    return this.jobsService.getJobDetails(id);
+  } 
 
 }
 

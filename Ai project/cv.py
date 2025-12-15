@@ -64,17 +64,17 @@ You are a professional resume parser.
 Extract only these fields and return valid JSON (no explanation, no markdown):
 
 {{
-  "summary": "",
-  "skills": [],
-  "education": {{
-      "degree": "",
-      "university": "",
-      "major": ""
-  }},
-  "certifications": [],
-  "languages": [],
-  "location": "",
-  "experience_years": ""
+"summary": "",
+"skills": [],
+"education": {{
+    "degree": "",
+    "university": "",
+    "major": ""
+}},
+"certifications": [],
+"languages": [],
+"location": "",
+"experience_years": ""
 }}
 
 Resume Text:

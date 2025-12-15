@@ -74,7 +74,7 @@ async LoginCompany(
 ) {
   const fingerprint = generateFingerprint(req);
 
-  const { user, accessToken, refreshToken } =
+  const { company, accessToken, refreshToken } =
     await this.companyManagementService.LoginComapny(companylogindto, fingerprint);
 
   res.cookie('accessToken', accessToken, {
@@ -92,7 +92,7 @@ async LoginCompany(
   });
 
   return {
-    user,
+    company,
     message: 'Login successful',
   };
 }

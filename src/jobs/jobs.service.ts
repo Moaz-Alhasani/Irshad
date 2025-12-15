@@ -11,6 +11,7 @@ import { SearchJobDto } from './dto/job_filter_dto';
 import { CreateQuestionDto } from './dto/create-question.dto';
 import { QuestionEntity } from './entities/question.entity';
 import { OptionEntity } from './entities/option.entity';
+import { JobResponseDto } from './dto/JobResponse.dto';
 
 interface FlaskEmbeddingResponse {
   embedding: number[];
@@ -135,14 +136,14 @@ async getShuffledJobQuestions(jobId: number) {
 
 
 
-  async getAllJobs():Promise<JobEntity[]>{
+  async getAllJobs():Promise<JobResponseDto[]>{
     const AllJobjs=await this.jobRepository.find({
       order:{
         'createdAt':'DESC'
       },
       relations:['company']
     })
-    return AllJobjs
+    return AllJobjs.map(job => new JobResponseDto(job));
   }
 
 

@@ -97,7 +97,7 @@ export class CompanyManagementService {
   const { password, ...companyWithoutPassword } = oldCompany;
 
   return {
-    user: companyWithoutPassword,
+    company: companyWithoutPassword,
     ...tokens,
   };
 }

@@ -23,7 +23,8 @@ edu_importance = joblib.load(os.path.join(MODEL_DIR,'edu_importance.pkl'))
 job_importance = joblib.load(os.path.join(MODEL_DIR,'job_importance.pkl'))
 scaler_X = joblib.load(os.path.join(MODEL_DIR, 'scaler_X.pkl'))
 scaler_y = joblib.load(os.path.join(MODEL_DIR, 'scaler_y.pkl'))
-embedder = SentenceTransformer(r'D:\all-mpnet-base-v2')
+# embedder = SentenceTransformer(r'D:\all-mpnet-base-v2')
+embedder = SentenceTransformer(r'F:\model\all-mpnet-base-v2')
 
 
 
@@ -73,7 +74,9 @@ def analyze():
         return jsonify({"error": str(e)}), 500
     
 
-modelembe = SentenceTransformer(r'D:\multi-qa-mpnet-base-dot-v1')
+# modelembe = SentenceTransformer(r'D:\multi-qa-mpnet-base-dot-v1')
+modelembe = SentenceTransformer(r'F:\model\multi-qa-mpnet-base-dot-v1')
+
 
 @app.route("/get-similarity", methods=["POST"])
 def get_similarity():

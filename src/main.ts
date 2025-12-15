@@ -10,16 +10,37 @@ async function bootstrap() {
   app.set('trust proxy', true);
   
   // شو وضع الامان
-  app.use(helmet({
-    crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginOpenerPolicy: { policy: "unsafe-none" },
-    crossOriginEmbedderPolicy: { policy: "unsafe-none" },
-  }));
+app.use(
+    helmet({
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
+      crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+      crossOriginEmbedderPolicy: false, // يسمح بتحميل الصور وملفات static
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          imgSrc: [
+            "'self'",
+            'data:',
+            'blob:',
+            'http://localhost:3000',
+            'http://localhost:3001',
+          ],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          connectSrc: [
+            "'self'",
+            'http://localhost:3000',
+            'http://localhost:3001',
+          ],
+        },
+      },
+    }),
+  );
   app.use(cookieParser());
 
   // ✅ تفعيل CORS للسماح للواجهة الأمامية بالوصول
   app.enableCors({
-    origin: "*", // أو استخدم مصفوفة للسماح بعدة مصادر
+    origin: ["http://localhost:3001"], // أو استخدم مصفوفة للسماح بعدة مصادر
     credentials: true, // للسماح بإرسال الكوكيز
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization','Accept'],

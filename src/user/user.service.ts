@@ -57,7 +57,7 @@ export class AuthService {
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
-    
+    registerDto.profileImage = imagePath ?? undefined;
     const hashedPassword = await this.hashPassword(registerDto.password);
     const newUser = this.userRepository.create({
       firstName: registerDto.firstName,

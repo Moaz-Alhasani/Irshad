@@ -148,8 +148,8 @@ export class AuthController {
   }
 
   @Post('createAdmin')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(UserRole.ADMIN)
+  // @UseGuards(JwtAuthGuard, RolesGuard)
   createAdmin(@Body() registerDto: RegisterDto , @Req() req : Request) {
     const fingerprint = generateFingerprint(req);
     return this.authservice.createAdmin(registerDto,fingerprint);

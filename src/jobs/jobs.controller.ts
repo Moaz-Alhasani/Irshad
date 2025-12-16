@@ -161,6 +161,6 @@ async getShuffledQuestions(@Param('jobId') jobId: number) {
   ): Promise<JobDetailDto> {
     return this.jobsService.getJobDetails(id);
   } 
-
+ 
 }
 

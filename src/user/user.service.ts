@@ -57,6 +57,7 @@ export class AuthService {
     if (existingUser) {
       throw new ConflictException('User already exists');
     }
+    registerDto.profileImage == imagePath
     const hashedPassword = await this.hashPassword(registerDto.password);
     const newUser = this.userRepository.create({
       firstName: registerDto.firstName,
@@ -187,27 +188,31 @@ export class AuthService {
 
 
   async updateUser(id: number, updateUserInfo: UpdateUserInfo, imagePath?: string) {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
+  const user = await this.userRepository.findOne({ where: { id } });
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
 
-    if (updateUserInfo.password) {
-      updateUserInfo.password = await bcrypt.hash(updateUserInfo.password, 10);
-    }
+  if (updateUserInfo.password) {
+    updateUserInfo.password = await bcrypt.hash(updateUserInfo.password, 10);
+  }
 
-    // remover the old image if there is new one 
-    if (imagePath && user.profileImage) {
+  // تحديث الصورة الشخصية إذا كانت هناك صورة جديدة
+  if (imagePath) {
+    // حذف الصورة القديمة إذا كانت موجودة
+    if (user.profileImage) {
       const oldImagePath = path.join(process.cwd(), user.profileImage);
       if (fs.existsSync(oldImagePath)) {
         fs.unlinkSync(oldImagePath);
       }
-      updateUserInfo.profileImage = imagePath;
     }
-
-    Object.assign(user, updateUserInfo);
-    return this.userRepository.save(user);
+    // تعيين المسار الجديد للصورة
+    updateUserInfo.profileImage = imagePath;
   }
+
+  Object.assign(user, updateUserInfo);
+  return this.userRepository.save(user);
+}
 
 
   async deleteUser(id: number) {

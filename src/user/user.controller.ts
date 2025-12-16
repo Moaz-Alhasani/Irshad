@@ -10,7 +10,7 @@ import { RegisterDto } from './dto/register-user.dto';
 import { LoginDto } from './dto/login-user.dto';
 import { UpdateUserInfo } from './dto/update-user.dto';
 import { jwtStrategy } from './strategies/jwt.strategy';
-import { extname } from 'path';
+import path, { extname } from 'path';
 import { diskStorage } from 'multer';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {generateFingerprint} from '../utils/fingerprint'
@@ -31,6 +31,34 @@ export class AuthController {
         cb(null, `${uniqueSuffix}${ext}`);
       },
     }),
+    fileFilter: (req, file, callback) => {
+      console.log('File filter - Processing:', {
+        name: file.originalname,
+        type: file.mimetype,
+        size: file.size
+      });
+      
+      // قائمة بأنواع الصور المسموح بها
+      const allowedMimeTypes = [
+        'image/jpeg',
+        'image/jpg', 
+        'image/png',
+        'image/gif',
+        'image/webp'
+      ];
+      
+      // التحقق من نوع MIME
+      if (allowedMimeTypes.includes(file.mimetype)) {
+        console.log('File accepted');
+        callback(null, true);
+      } else {
+        console.log('File rejected - Invalid mime type:', file.mimetype);
+        callback(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp)'), false);
+      }
+    },
+    limits: {
+      fileSize: 5 * 1024 * 1024, // 5MB كحد أقصى
+    }
   }))
   async register(
     @Body() registerDto: RegisterDto,
@@ -39,6 +67,8 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
       const imagePath = file ? `uploads/profile/${file.filename}` : null;
+      console.log(imagePath);
+      
       const fingerprint = generateFingerprint(req); 
       const { user, accessToken, refreshToken } =  await this.authservice.register(registerDto, imagePath,fingerprint);
 

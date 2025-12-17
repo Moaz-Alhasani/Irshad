@@ -332,19 +332,19 @@ async searchofuser(@Body('username') username: string) {
     return await this.authservice.numberOfAdmins();
   }
 
-  @Get("verified-users")
-  @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN)
-  @UseGuards(JwtAuthGuard,RolesGuard)
-  async getUserVerifyTrue(){
-    const userVerify=await this.authservice.getUserWhoVerifyTrue()
-    return userVerify
+  @Get('verified-users')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getUserVerifyTrue() {
+    const count = await this.authservice.getUserWhoVerifyTrue();
+    return { verifiedUsers: count };
   }
 
-  @Get("Notverified-users")
-  @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN)
-  @UseGuards(JwtAuthGuard,RolesGuard)
-  async getUserVerifyFalse(){
-    const NotuserVerify=await this.authservice.getUserWhoVerifyFalse()
-    return NotuserVerify
+  @Get('not-verified-users')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getUserVerifyFalse() {
+    const count = await this.authservice.getUserWhoVerifyFalse();
+    return { notVerifiedUsers: count };
   }
 }

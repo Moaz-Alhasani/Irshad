@@ -578,8 +578,8 @@ public async SearchOfUser(username: string): Promise<UserEntity> {
   });
 }
 
-public async getUserWhoVerifyTrue(): Promise<UserEntity[]> {
-  const userVerify = await this.userRepository.find({
+public async getUserWhoVerifyTrue(): Promise<number> {
+  const userVerify = await this.userRepository.count({
     where: {
       isVerify: true,
     },
@@ -588,8 +588,8 @@ public async getUserWhoVerifyTrue(): Promise<UserEntity[]> {
   return userVerify;
 }
 
-public async getUserWhoVerifyFalse(): Promise<UserEntity[]> {
-  const userNotVerify = await this.userRepository.find({
+public async getUserWhoVerifyFalse(): Promise<number> {
+  const userNotVerify = await this.userRepository.count({
     where: {
       isVerify: false,
     },

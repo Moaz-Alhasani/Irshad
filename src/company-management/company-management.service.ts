@@ -196,4 +196,14 @@ public async getcompanycount():Promise<number>{
   return await this.companyRepository.count();
 }
 
+public async getAllCompaniesWithStatus(){
+  const companies=await this.companyRepository.find({
+    select: ['id', 'companyName', 'isVerified'],
+  });
+  return companies.map((company) => ({
+    companyName: company.companyName,
+    isVerified: company.isVerified,
+  }));
+}
+
 }

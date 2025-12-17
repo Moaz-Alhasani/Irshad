@@ -217,6 +217,7 @@ export class AuthController {
   async JobsRecommendtion(@CurrentUser() currentUser: any){
       return this.authservice.getRecommendedJobs(currentUser.id);
   }
+  
 
 @Post('verify-email')
 @UseGuards(JwtAuthGuard) 
@@ -329,5 +330,21 @@ async searchofuser(@Body('username') username: string) {
   @UseGuards(JwtAuthGuard, RolesGuard)
   async getNumberOfAdmins() {
     return await this.authservice.numberOfAdmins();
+  }
+
+  @Get("verified-users")
+  @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async getUserVerifyTrue(){
+    const userVerify=await this.authservice.getUserWhoVerifyTrue()
+    return userVerify
+  }
+
+  @Get("Notverified-users")
+  @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async getUserVerifyFalse(){
+    const NotuserVerify=await this.authservice.getUserWhoVerifyFalse()
+    return NotuserVerify
   }
 }

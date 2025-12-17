@@ -285,10 +285,10 @@ export class AuthController {
     return result;
   }
 
-@Post('resend-otp')
-async resendOtp(@Body('email') email: string) {
-  return this.authservice.resendOtp(email);
-}
+  @Post('resend-otp')
+  async resendOtp(@Body('email') email: string) {
+    return this.authservice.resendOtp(email);
+  }
 
 
 @Post('searchuser')

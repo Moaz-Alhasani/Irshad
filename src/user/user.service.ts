@@ -594,19 +594,19 @@ public async sendOtp(userEmail: string) {
     }));
   }
 
-public async resendOtp(userEmail: string) {
-  const user = await this.userRepository.findOne({
-    where: { email: userEmail },
-  });
+  public async resendOtp(userEmail: string) {
+    const user = await this.userRepository.findOne({
+      where: { email: userEmail },
+    });
 
-  if (!user) {
-    throw new NotFoundException('User not found');
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    if (user.isVerify) {
+      throw new BadRequestException('Account already verified');
+    }
+    return this.sendOtp(userEmail);
   }
-  if (user.isVerify) {
-    throw new BadRequestException('Account already verified');
-  }
-  return this.sendOtp(userEmail);
-}
 
 
   public async numberOfUsers(): Promise<number> {

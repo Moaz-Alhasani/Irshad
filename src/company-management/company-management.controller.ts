@@ -137,4 +137,11 @@ async LoginCompany(
     return this.companyManagementService.getcompanycount()
   }
 
+  @Get("CompaniesStatus")
+  @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async getCompnyStatus(){
+    return await this.companyManagementService.getAllCompaniesWithStatus()
+  }
+
 }

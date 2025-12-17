@@ -229,13 +229,33 @@ export class AuthService {
       throw new NotFoundException(`company with ${compid} id is not found`)
     }
     company.isVerified=true
+      await this.MailService.sendEmail({
+      email: company.email,
+      subject: 'Company Application Approved',
+      message: `
+      Dear ${company.companyName},
+      Your company has been approved.
+      Welcome to Irshad.
+      Irshad Team
+      `
+    });
     return this.companyRepository.save(company)
   }
+
   async AdminNonAcceptTheCompany(compid:number){
     const company=await this.companyRepository.findOne({where:{id:compid}})
     if(!company){
       throw new NotFoundException(`company with ${compid} id is not found`)
     }
+      await this.MailService.sendEmail({
+      email: company.email,
+      subject: 'Company Application Rejected',
+      message: `
+        Dear ${company.companyName},
+        Your company application was not approved.
+        You may apply again later.
+        Irshad Team`
+    });
     await this.companyRepository.remove(company);
     return `the company with ${compid} has been refused`
   }
@@ -557,4 +577,25 @@ public async SearchOfUser(username: string): Promise<UserEntity> {
     ],
   });
 }
+
+public async getUserWhoVerifyTrue(): Promise<number> {
+  const userVerify = await this.userRepository.count({
+    where: {
+      isVerify: true,
+    },
+  });
+
+  return userVerify;
+}
+
+public async getUserWhoVerifyFalse(): Promise<number> {
+  const userNotVerify = await this.userRepository.count({
+    where: {
+      isVerify: false,
+    },
+  });
+
+  return userNotVerify;
+}
+
 }

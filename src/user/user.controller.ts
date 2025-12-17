@@ -140,16 +140,16 @@ export class AuthController {
     return { message: 'Access token refreshed' };
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('profile')
+  @UseGuards(JwtAuthGuard)
   getFullProfile(@CurrentUser() user: any) {
     console.log(user.age)
     return this.authservice.getUserWithResume(user.id);
   }
 
   @Post('createAdmin')
-  // @Roles(UserRole.ADMIN)
-  // @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   createAdmin(@Body() registerDto: RegisterDto , @Req() req : Request) {
     const fingerprint = generateFingerprint(req);
     return this.authservice.createAdmin(registerDto,fingerprint);
@@ -212,34 +212,34 @@ export class AuthController {
     return this.authservice.AdminNonAcceptTheCompany(compid)
   }
 
-  @UseGuards(JwtAuthGuard)
   @Get('recommended-jobs')
+  @UseGuards(JwtAuthGuard)
   async JobsRecommendtion(@CurrentUser() currentUser: any){
       return this.authservice.getRecommendedJobs(currentUser.id);
   }
 
-@Post('verify-email')
-@UseGuards(JwtAuthGuard) 
-async verifyOtpForEmail(
-  @CurrentUser() currentUser: any,
-  @Body('otp') otp: string, 
-  @Req() req : Request,
-  @Res({ passthrough: true }) res: Response,
-) {
-  const fingerprint = generateFingerprint(req)
-  const result = await this.authservice.verifyOtpForEmail(currentUser.email, otp,fingerprint);
+  @Post('verify-email')
+  @UseGuards(JwtAuthGuard) 
+  async verifyOtpForEmail(
+    @CurrentUser() currentUser: any,
+    @Body('otp') otp: string, 
+    @Req() req : Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const fingerprint = generateFingerprint(req)
+    const result = await this.authservice.verifyOtpForEmail(currentUser.email, otp,fingerprint);
 
-  if (result.success && result.tokens) {
-    res.clearCookie('accessToken');
+    if (result.success && result.tokens) {
+      res.clearCookie('accessToken');
 
-    res.cookie('accessToken', result.tokens.accessToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'none',
-      maxAge: 1000 * 60 * 60 * 24,
-    });
-  }
-  return  result.tokens
+      res.cookie('accessToken', result.tokens.accessToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 1000 * 60 * 60 * 24,
+      });
+    }
+      return  result.tokens
   }
 
   @Post('forget-password')
@@ -259,8 +259,9 @@ async verifyOtpForEmail(
     if ('resetToken' in result){
       res.cookie('resetToken', result.resetToken , {
         httpOnly: true,
-        sameSite: 'strict',
-        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'none',
+        secure: true,
+        maxAge: 5 * 60 * 1000
       });
     }
     return { success: true, message: 'OTP verified. You can now submit new password.' };
@@ -273,6 +274,8 @@ async verifyOtpForEmail(
     @Res({ passthrough: true }) res: Response,
   ) {
     const resetToken = req.cookies?.resetToken;
+    console.log(req.cookies);
+    
     if (!resetToken) {
       throw new ForbiddenException('Reset token missing. Verify OTP first.');
     }
@@ -287,10 +290,10 @@ async verifyOtpForEmail(
     return this.authservice.resendOtp(currentUser.email)
   }
 
-@Post('searchuser')
-async searchofuser(@Body('username') username: string) {
-  return this.authservice.SearchOfUser(username);
-}
+  @Post('searchuser')
+  async searchofuser(@Body('username') username: string) {
+    return this.authservice.SearchOfUser(username);
+  }
 
   @Put('disable/:id')
   @UseGuards(JwtAuthGuard) 

@@ -101,7 +101,6 @@ async getShuffledJobQuestions(jobId: number) {
       q.options.map(o => ({
         id: o.id,
         text: o.text,
-        isCorrect: o.isCorrect, 
       }))
     ),
   }));

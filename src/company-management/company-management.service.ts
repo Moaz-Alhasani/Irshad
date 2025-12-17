@@ -196,14 +196,121 @@ public async getcompanycount():Promise<number>{
   return await this.companyRepository.count();
 }
 
-public async getAllCompaniesWithStatus(){
-  const companies=await this.companyRepository.find({
-    select: ['id', 'companyName', 'isVerified'],
-  });
-  return companies.map((company) => ({
+public async getAllCompaniesWithStatus(
+  status: 'all' | 'pending' | 'approved' = 'all',
+) {
+  const qb = this.companyRepository.createQueryBuilder('company');
+  if (status === 'pending') {
+    qb.where('company.isVerified = :isVerified', { isVerified: false });
+  }
+
+  if (status === 'approved') {
+    qb.where('company.isVerified = :isVerified', { isVerified: true });
+  }
+  const companies = await qb
+    .select([
+      'company.id',
+      'company.companyName',
+      'company.email',
+      'company.companyWebsite',
+      'company.companyLocation',
+      'company.companyLogo',
+      'company.isVerified',
+      'company.createdAt',
+    ])
+    .orderBy('company.createdAt', 'DESC')
+    .getMany();
+
+  return companies.map(company => ({
+    id: company.id,
     companyName: company.companyName,
-    isVerified: company.isVerified,
+    email: company.email,
+    website: company.companyWebsite || null,
+    location: company.companyLocation || null,
+    logo: company.companyLogo || null,
+    status: company.isVerified ? 'مقبول' : 'معلّق',
+    createdAt: company.createdAt,
   }));
+}
+
+
+
+public async getPendingCompaniesWithCount() {
+  // جلب الشركات المعلقة
+  const companies = await this.companyRepository.find({
+    where: { isVerified: false },
+    select: [
+      'id',
+      'companyName',
+      'email',
+      'companyWebsite',
+      'companyLocation',
+      'companyLogo',
+      'createdAt',
+    ],
+  });
+
+  // عدّ الشركات المعلقة
+  const pendingCount = companies.length;
+
+  // تحويل البيانات للفرونت
+  const data = companies.map((company) => ({
+    id: company.id,
+    companyName: company.companyName,
+    email: company.email,
+    website: company.companyWebsite || null,
+    location: company.companyLocation || null,
+    logo: company.companyLogo || null,
+    createdAt: company.createdAt,
+  }));
+
+  return {
+    totalPending: pendingCount,
+    companies: data,
+  };
+}
+
+
+
+public async searchCompanyByName(keyword: string): Promise<CompanyEntity[]> {
+  const cleanKeyword = keyword?.trim();
+
+  if (!cleanKeyword) {
+    throw new NotFoundException('Search keyword cannot be empty');
+  }
+
+  const parts = cleanKeyword.split(' ').filter(Boolean);
+
+  let qb = this.companyRepository.createQueryBuilder('company');
+
+  parts.forEach((part, index) => {
+    const param = `p${index}`;
+
+    const condition = `
+      (
+        company.companyName ILIKE :${param}
+        OR company.email ILIKE :${param}
+        OR company.companyLocation ILIKE :${param}
+        OR company.companyWebsite ILIKE :${param}
+      )
+    `;
+
+    const params = { [param]: `%${part}%` };
+
+    if (index === 0) {
+      qb = qb.where(condition, params);
+    } else {
+      qb = qb.andWhere(condition, params);
+    }
+  });
+
+  const companies = await qb.getMany();
+
+  if (!companies.length) {
+    throw new NotFoundException(`No companies found for "${keyword}"`);
+  }
+
+  return companies;
 }
 
 }

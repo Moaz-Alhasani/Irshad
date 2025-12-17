@@ -1,7 +1,7 @@
-import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, ParseIntPipe, Post, Put, Query, Req, Res, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { Roles } from './decorators/roles.decorators';
-import { UserRole } from './entities/user.entity';
+import { UserEntity, UserRole } from './entities/user.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RolesGuard } from './guards/roles-guard';
 import { CurrentUser } from './decorators/current_user.decorators';
@@ -285,16 +285,16 @@ export class AuthController {
     return result;
   }
 
-  @Post('resend-otp')
-  @UseGuards(JwtAuthGuard)
-  async resendOtp(@CurrentUser()currentUser:any){
-    return this.authservice.resendOtp(currentUser.email)
-  }
+@Post('resend-otp')
+async resendOtp(@Body('email') email: string) {
+  return this.authservice.resendOtp(email);
+}
 
-  @Post('searchuser')
-  async searchofuser(@Body('username') username: string) {
-    return this.authservice.SearchOfUser(username);
-  }
+
+@Post('searchuser')
+async searchofuser(@Body('username') username: string) {
+  return this.authservice.searchUserByName(username);
+}
 
   @Put('disable/:id')
   @UseGuards(JwtAuthGuard) 
@@ -329,7 +329,7 @@ export class AuthController {
     return await this.authservice.numberOfUsers();
   }
   @Get('admins_count')
-  @Roles(UserRole.SUPER_ADMIN) 
+  @Roles(UserRole.SUPER_ADMIN,UserRole.ADMIN) 
   @UseGuards(JwtAuthGuard, RolesGuard)
   async getNumberOfAdmins() {
     return await this.authservice.numberOfAdmins();
@@ -349,5 +349,15 @@ export class AuthController {
   async getUserVerifyFalse() {
     const count = await this.authservice.getUserWhoVerifyFalse();
     return { notVerifiedUsers: count };
+  }
+
+
+  @Get("getuserUsingrole")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  async getUsers(@Query('role') role?: UserRole) {
+    if (role) {
+      return this.authservice.getUsersByRole(role);
+    }
+    return this.authservice.getAllUsers();
   }
 }

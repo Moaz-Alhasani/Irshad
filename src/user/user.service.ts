@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   NotFoundException,
   Inject,
+  BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, Repository } from 'typeorm';
@@ -527,41 +528,86 @@ public async sendOtp(userEmail: string) {
   };
 }
 
+  public async searchUserByName(username: string): Promise<UserEntity[]> {
+    const cleanUsername = username.trim();
+    if (!cleanUsername) {
+      throw new NotFoundException('Username cannot be empty');
+    }
 
-public async SearchOfUser(username: string): Promise<UserEntity> {
-  const cleanUsername = username.trim().replace(/['"]+/g, '');
-  const parts = cleanUsername.split(' ').filter(Boolean);
-  let user: UserEntity | null = null;
+    const parts = cleanUsername.split(' ').filter(Boolean);
 
-  if (parts.length === 2) {
-    const [firstName, lastName] = parts;
+    let qb = this.userRepository.createQueryBuilder('user');
 
-    user = await this.userRepository.findOne({
-      where: {
-        firstName: ILike(`%${firstName}%`),
-        lastName: ILike(`%${lastName}%`),
-      },
+    parts.forEach((part, idx) => {
+      const paramName = `p${idx}`;
+      const condition = `(user.firstName ILIKE :${paramName} OR user.lastName ILIKE :${paramName} OR user.email ILIKE :${paramName})`;
+      const params = { [paramName]: `%${part}%` };
+
+      if (idx === 0) qb = qb.where(condition, params);
+      else qb = qb.andWhere(condition, params);
     });
-  } else {
-    user = await this.userRepository.findOne({
-      where: [
-        { firstName: ILike(`%${cleanUsername}%`) },
-        { lastName: ILike(`%${cleanUsername}%`) },
-      ],
-    });
+
+    const users = await qb.getMany();
+
+    if (!users || users.length === 0) {
+      throw new NotFoundException(`${username} is not exist`);
+    }
+
+    return users;
   }
+
+
+  public async getAllUsers(): Promise<any[]> {
+    const users = await this.userRepository.find();
+
+    return users.map(user => ({
+      id: user.id,
+      fullName: `${user.firstName} ${user.lastName}`,
+      email: user.email,
+      role: this.mapRoleToLabel(user.role),
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    }));
+  }
+
+  private mapRoleToLabel(role: UserRole): string {
+    switch(role) {
+      case UserRole.SUPER_ADMIN: return 'مدير عام';
+      case UserRole.ADMIN: return 'أدمن';
+      case UserRole.JOB_SEEKER: return 'مستخدم';
+      default: return 'غير معروف';
+    }
+  }
+
+  public async getUsersByRole(role: UserRole): Promise<any[]> {
+    const users = await this.userRepository.find({
+      where: { role },
+    });
+
+    return users.map(user => ({
+      id: user.id,
+      fullName: `${user.firstName} ${user.lastName}`,
+      email: user.email,
+      role: this.mapRoleToLabel(user.role),
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    }));
+  }
+
+public async resendOtp(userEmail: string) {
+  const user = await this.userRepository.findOne({
+    where: { email: userEmail },
+  });
 
   if (!user) {
-    throw new NotFoundException(`${username} is not exist`);
+    throw new NotFoundException('User not found');
   }
-
-  return user;
+  if (user.isVerify) {
+    throw new BadRequestException('Account already verified');
+  }
+  return this.sendOtp(userEmail);
 }
 
-
-  public async resendOtp(userEmail: string) {
-    return this.sendOtp(userEmail);
-  }
 
   public async numberOfUsers(): Promise<number> {
     return await this.userRepository.count({

@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { Controller, Get, Post, Body, Param, Put, UseGuards, UseInterceptors, UploadedFile, ParseIntPipe, Req, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, UseGuards, UseInterceptors, UploadedFile, ParseIntPipe, Req, Res, Query } from '@nestjs/common';
 import { CompanyManagementService } from './company-management.service';
 import { CreateCompanyManagementDto } from './dto/create-company-management.dto';
 import { UpdateCompanyManagementDto } from './dto/update-company-management.dto';
@@ -137,11 +137,28 @@ async LoginCompany(
     return this.companyManagementService.getcompanycount()
   }
 
-  @Get("CompaniesStatus")
-  @Roles(UserRole.ADMIN,UserRole.SUPER_ADMIN)
-  @UseGuards(JwtAuthGuard,RolesGuard)
-  async getCompnyStatus(){
-    return await this.companyManagementService.getAllCompaniesWithStatus()
-  }
+@Get('CompaniesStatus')
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard)
+async getCompanyStatus(
+  @Query('status') status?: 'all' | 'pending' | 'approved',
+) {
+  return this.companyManagementService.getAllCompaniesWithStatus(status);
+}
+
+
+@Post('search-company')
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard)
+async searchCompany(@Body('keyword') keyword: string) {
+  return this.companyManagementService.searchCompanyByName(keyword);
+}
+
+@Get("pending-companies")
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard)
+async getPendingCompanies() {
+  return await this.companyManagementService.getPendingCompaniesWithCount();
+}
 
 }

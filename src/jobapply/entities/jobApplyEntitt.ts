@@ -64,6 +64,9 @@ export class JobApplyEntity {
     @OneToMany(() => JobTestAnswerEntity, answer => answer.application, { cascade: true })
     testAnswers: JobTestAnswerEntity[];
 
+    @Column({ type: 'int', nullable: true })
+    test_score: number;
+
     @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
     createdAt: Date;
 

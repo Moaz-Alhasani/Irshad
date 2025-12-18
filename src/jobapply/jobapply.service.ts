@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
@@ -8,6 +8,7 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { CreateJobApplyDto } from './dto/createjobsdto';
 import { QuestionEntity } from 'src/jobs/entities/question.entity';
 import { JobTestAnswerEntity } from './entities/jobTestAnswer.entity';
+import { JobExamAttempt } from 'src/jobs/entities/job_exam_attempts_entity';
 
 interface SalaryResponse {
   estimated_salary: number;
@@ -34,6 +35,7 @@ export class JobapplyService {
     @InjectRepository(JobEntity) private jobEntity: Repository<JobEntity>,
     @InjectRepository(JobApplyEntity) private jobApplyEntity: Repository<JobApplyEntity>,
     @InjectRepository(UserEntity) private userEntity: Repository<UserEntity>,
+    @InjectRepository(JobExamAttempt) private JobExamAttempt: Repository<JobExamAttempt>, 
   ) {}
 
   
@@ -160,60 +162,41 @@ async applyToJob(jobId: number,currentUser: any,createJobApplyDto: CreateJobAppl
 
 
 
-async getJobTest(jobId: number, userId: number) {
-  const application = await this.jobApplyEntity.findOne({
-    where: { job: { id: jobId }, user: { id: userId } },
-    relations: ['job', 'job.questions', 'job.questions.options'],
-  });
-
-  if (!application) throw new ForbiddenException('You have not applied to this job');
-
-  if (application.application_status === ApplicationStatus.WITHDRAWN) {
-
-    application.application_status = ApplicationStatus.TEST_PENDING;
-    await this.jobApplyEntity.save(application);
-  } else if (application.application_status === ApplicationStatus.TEST_COMPLETED) {
-    throw new ForbiddenException('You have already completed the test');
-  } else {
-    application.application_status = ApplicationStatus.TEST_PENDING;
-    await this.jobApplyEntity.save(application);
+async submitJobTest(
+  jobId: number,
+  userId: number,
+  answers: { questionId: number; selectedOptionId: number }[],
+) {
+  if (!answers || !Array.isArray(answers)) {
+    throw new BadRequestException('Answers must be an array');
   }
-  const shuffleArray = <T>(array: T[]): T[] => {
-    const arr = [...array];
-    for (let i = arr.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  };
-  if (!application.job.questions || application.job.questions.length === 0) {
-    return { message: 'No questions available for this job', questions: [] };
-  }
-  return application.job.questions.map(q => ({
-    id: q.id,
-    questionText: q.questionText,
-    options: shuffleArray(q.options.map(o => ({ id: o.id, text: o.text }))),
-  }));
-}
 
-
-
-async submitJobTest(jobId: number, userId: number, answers: { questionId: number; selectedOptionId: number }[]) {
   const application = await this.jobApplyEntity.findOne({
     where: { job: { id: jobId }, user: { id: userId } },
     relations: ['job', 'job.questions', 'job.questions.options', 'testAnswers'],
   });
 
   if (!application) throw new ForbiddenException('You have not applied to this job');
+
+  // تحقق أنه لم يتم تقديم الاختبار مسبقًا
+  const hasAttempted = await this.JobExamAttempt.findOne({
+    where: { user: { id: userId }, job: { id: jobId } },
+  });
+  if (hasAttempted) throw new ForbiddenException('You have already taken this test');
+
   let score = 0;
   const testAnswers: JobTestAnswerEntity[] = [];
+
   for (const ans of answers) {
     const question = application.job.questions.find(q => q.id === ans.questionId);
     if (!question) continue;
+
     const option = question.options.find(o => o.id === ans.selectedOptionId);
     if (!option) continue;
+
     const isCorrect = option.isCorrect;
     if (isCorrect) score++;
+
     const testAnswer = this.jobApplyEntity.manager.create(JobTestAnswerEntity, {
       application,
       question,
@@ -222,9 +205,62 @@ async submitJobTest(jobId: number, userId: number, answers: { questionId: number
     });
     testAnswers.push(testAnswer);
   }
+
   await this.jobApplyEntity.manager.save(testAnswers);
+
+  application.test_score = score;
   application.application_status = ApplicationStatus.TEST_COMPLETED;
   await this.jobApplyEntity.save(application);
-  return { message: 'Test submitted', score, total: application.job.questions.length };
+
+
+  await this.JobExamAttempt.save({
+    user: { id: userId },
+    job: { id: jobId },
+    score,
+    submittedAt: new Date(),
+  });
+
+  return {
+    message: 'Test submitted successfully',
+    score,
+    total: application.job.questions.length,
+  };
 }
+
+
+
+async getApplicantsWithResults(jobId: number, companyId: number) {
+  const job = await this.jobEntity.findOne({
+    where: {
+      id: jobId,
+      company: { id: companyId },
+    },
+  });
+
+  if (!job) {
+    throw new ForbiddenException('You do not own this job');
+  }
+
+  return this.jobApplyEntity.find({
+    where: {
+      job: { id: jobId },
+    },
+    relations: ['user'],
+    select: {
+      id: true,
+      application_status: true,
+      test_score: true,
+      user: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+      },
+    },
+    order: {
+      test_score: 'DESC',
+    },
+  });
+}
+
 }

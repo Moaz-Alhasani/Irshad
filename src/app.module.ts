@@ -18,6 +18,7 @@ import { InterviewEntity } from './interview/entities/interview.entity';
 import { QuestionEntity } from './jobs/entities/question.entity';
 import { OptionEntity } from './jobs/entities/option.entity';
 import { JobTestAnswerEntity } from './jobapply/entities/jobTestAnswer.entity';
+import { JobExamAttempt } from './jobs/entities/job_exam_attempts_entity';
 
 
 @Module({
@@ -33,7 +34,7 @@ import { JobTestAnswerEntity } from './jobapply/entities/jobTestAnswer.entity';
         username: configService.get<string>('DB_USER'),
         password: configService.get<string>('DB_PASSWORD'), 
         database: configService.get<string>('DB_NAME'),
-        entities: [UserEntity,CompanyEntity,JobEntity,ResumeEntity,JobApplyEntity,InterviewEntity,QuestionEntity,JobTestAnswerEntity,OptionEntity],
+        entities: [UserEntity,CompanyEntity,JobEntity,ResumeEntity,JobApplyEntity,InterviewEntity,QuestionEntity,JobTestAnswerEntity,OptionEntity,JobExamAttempt],
         synchronize: true,
       }),
     }),
@@ -43,9 +44,9 @@ import { JobTestAnswerEntity } from './jobapply/entities/jobTestAnswer.entity';
     ResumesModule,
     JobapplyModule,
     InterviewModule,
-
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
+

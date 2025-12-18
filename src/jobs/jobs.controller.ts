@@ -78,10 +78,9 @@ export class JobsController {
       embedding,
     };
   }
-
+  @Post(':companyId')
   @Roles(CompanyRole.COMPANY)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Post(':companyId')
   @ImageFileInterceptor('img')
   async createJob(
     @Param('companyId') companyId: number,
@@ -93,10 +92,9 @@ export class JobsController {
     return this.jobsService.createJob(createJobDto, companyId, user);
   }
 
-
+  @Post(':jobId/questions')
   @Roles(CompanyRole.COMPANY)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Post(':jobId/questions')
   async addQuestion(
     @Param('jobId') jobId: number,
     @Body() createQuestionDto: CreateQuestionDto,
@@ -114,9 +112,11 @@ async getShuffledQuestions(
         return this.jobsService.getShuffledJobQuestions(jobId,currentUser.id);
 }
 
+
+
+  @Put(':id')
   @Roles(CompanyRole.COMPANY)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Put(':id')
   @ImageFileInterceptor('img')
   async updateJob(
     @Param('id') id: number,

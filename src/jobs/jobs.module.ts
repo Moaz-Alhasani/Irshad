@@ -8,9 +8,11 @@ import { CompanyManagementModule } from 'src/company-management/company-manageme
 import { AuthModule } from 'src/user/user.module';
 import { QuestionEntity } from './entities/question.entity';
 import { OptionEntity } from './entities/option.entity';
+import { JobExamAttempt } from './entities/job_exam_attempts_entity';
+import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 
 @Module({
-  imports:[TypeOrmModule.forFeature([JobEntity,CompanyEntity,QuestionEntity,OptionEntity]),forwardRef(() => CompanyManagementModule),forwardRef(() => AuthModule)],
+  imports:[TypeOrmModule.forFeature([JobEntity,CompanyEntity,QuestionEntity,OptionEntity,JobExamAttempt, JobApplyEntity]),forwardRef(() => CompanyManagementModule),forwardRef(() => AuthModule)],
   controllers: [JobsController],
   providers: [JobsService],
   exports:[JobsService,JobsModule]

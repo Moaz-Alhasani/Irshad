@@ -14,6 +14,7 @@ import { OptionEntity } from './entities/option.entity';
 import { JobResponseDto } from './dto/JobResponse.dto';
 import { JobDetailDto } from './dto/job-details.dto';
 import { JobExamAttempt } from './entities/job_exam_attempts_entity';
+import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 
 interface FlaskEmbeddingResponse {
   embedding: number[];
@@ -31,7 +32,9 @@ export class JobsService {
     @InjectRepository(OptionEntity)
     private readonly optionRepository: Repository<OptionEntity>,
     @InjectRepository(JobExamAttempt)
-    private readonly jobExamAttemptRepository :Repository<JobExamAttempt>
+    private readonly jobExamAttemptRepository :Repository<JobExamAttempt>,
+    @InjectRepository(JobApplyEntity)
+    private readonly jobApplyRepository: Repository<JobApplyEntity>,
   ) {}
 
 async createJob(createJobDto: CreateJobDto, companyId: number, company: any): Promise<JobEntity> {
@@ -84,25 +87,26 @@ async addQuestion(jobId: number, createQuestionDto: CreateQuestionDto) {
   }
 
 async getShuffledJobQuestions(jobId: number, userId: number) {
-  
- const hasAttempted = await this.jobExamAttemptRepository.findOne({
-    where: {
-      user: { id: userId },
-      job: { id: jobId },
-    },
+  // تحقق أن المستخدم متقدم على الوظيفة
+  const application = await this.jobApplyRepository.findOne({
+    where: { job: { id: jobId }, user: { id: userId } },
   });
+  if (!application) throw new ForbiddenException('You must apply for this job before taking the test');
 
-  if (hasAttempted) {
-    throw new ForbiddenException('You have already taken this test');
-  }
+  // تحقق أنه لم يأخذ الاختبار مسبقًا
+  const hasAttempted = await this.jobExamAttemptRepository.findOne({
+    where: { user: { id: userId }, job: { id: jobId } },
+  });
+  if (hasAttempted) throw new ForbiddenException('You have already taken this test');
 
+  // جلب الوظيفة والأسئلة
   const job = await this.jobRepository.findOne({
     where: { id: jobId },
     relations: ['questions', 'questions.options'],
   });
-
   if (!job) throw new NotFoundException('Job not found');
 
+  // خلط الخيارات
   const shuffleArray = <T>(array: T[]): T[] => {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -116,15 +120,13 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
     id: q.id,
     questionText: q.questionText,
     options: shuffleArray(
-      q.options.map(o => ({
-        id: o.id,
-        text: o.text,
-      }))
+      q.options.map(o => ({ id: o.id, text: o.text }))
     ),
   }));
 }
+
   
-  async getJobDetails(id: number): Promise<JobDetailDto> {
+async getJobDetails(id: number): Promise<JobDetailDto> {
     const job = await this.jobRepository.findOne({
       where: { id },
       relations: ['company', 'questions', 'questions.options'],
@@ -133,8 +135,6 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
     if (!job) {
       throw new NotFoundException(`Job with ID ${id} not found`);
     }
-
-    // لا حاجة لحذف الحقول هنا، DTO سيتعامل معها
     return new JobDetailDto(job);
   }
 

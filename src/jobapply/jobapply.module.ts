@@ -10,6 +10,7 @@ import { JobApplyEntity } from './entities/jobApplyEntitt';
 import { InterviewEntity } from 'src/interview/entities/interview.entity';
 import { AuthModule } from 'src/user/user.module';
 import { JobTestAnswerEntity } from './entities/jobTestAnswer.entity';
+import { JobExamAttempt } from 'src/jobs/entities/job_exam_attempts_entity';
 
 @Module({
   imports:[
@@ -20,7 +21,8 @@ import { JobTestAnswerEntity } from './entities/jobTestAnswer.entity';
       ResumeEntity,
       JobApplyEntity, 
       InterviewEntity,
-      JobTestAnswerEntity
+      JobTestAnswerEntity,
+      JobExamAttempt
     ]),
   forwardRef(() => AuthModule)
   ],

@@ -285,9 +285,32 @@ export class AuthController {
     return result;
   }
 
-  @Post('resend-otp')
-  async resendOtp(@Body('email') email: string) {
-    return this.authservice.resendOtp(email);
+@Post('resend-email-otp')
+resendEmailOtp(
+  @Body('email') email: string,
+  @Req() req: Request,
+  @Res({ passthrough: true }) res: Response,
+) {
+  const fingerprint = generateFingerprint(req);
+
+  return this.authservice.resendOtp(email, fingerprint).then(result => {
+    res.cookie('accessToken', result.tempToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 1000 * 60 * 3,
+    });
+
+    return {
+      message: result.message,
+    };
+  });
+}
+
+@Post('resend-password-otp')
+  async resendPasswordOtp(@Body('email') email: string) {
+    const message = await this.authservice.resendPasswordOtp(email);
+    return { message };
   }
 
 

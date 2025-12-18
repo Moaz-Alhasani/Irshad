@@ -40,6 +40,7 @@ export class AuthService {
     string,
     { otp: string; expiresAt: Date }
     > = {};
+
     private resetTokens: Record<string, { email: string; expiresAt: number }> = {};
 
   constructor(
@@ -528,6 +529,39 @@ public async sendOtp(userEmail: string) {
   };
 }
 
+public async resendOtp(userEmail: string, fingerprint?: string) {
+  const user = await this.userRepository.findOne({
+    where: { email: userEmail },
+  });
+
+  if (!user) {
+    throw new NotFoundException('User not found');
+  }
+
+  if (user.isVerify) {
+    throw new BadRequestException('Account already verified');
+  }
+  await this.sendOtp(userEmail);
+  const accessToken = this.generateAccessToken(user, fingerprint || 'temp');
+
+  return {
+    message: 'OTP resent successfully',
+    tempToken: accessToken,
+  };
+}
+
+  public async resendPasswordOtp(email: string): Promise<string> {
+    const user = await this.userRepository.findOne({ where: { email } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    await this.sendOtp(email);
+
+    return 'OTP resent successfully. Check your email.';
+  }
+
+
+
   public async searchUserByName(username: string): Promise<UserEntity[]> {
     const cleanUsername = username.trim();
     if (!cleanUsername) {
@@ -594,19 +628,7 @@ public async sendOtp(userEmail: string) {
     }));
   }
 
-  public async resendOtp(userEmail: string) {
-    const user = await this.userRepository.findOne({
-      where: { email: userEmail },
-    });
 
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-    if (user.isVerify) {
-      throw new BadRequestException('Account already verified');
-    }
-    return this.sendOtp(userEmail);
-  }
 
 
   public async numberOfUsers(): Promise<number> {

@@ -1,4 +1,4 @@
-import { Body, Controller, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post, Put, UseGuards } from '@nestjs/common';
 import { JobapplyService } from './jobapply.service';
 import { JwtAuthGuard } from 'src/user/guards/jwt-auth.guard';
 import { CurrentUser } from 'src/user/decorators/current_user.decorators';
@@ -7,6 +7,7 @@ import { Roles } from 'src/user/decorators/roles.decorators';
 import { UserRole } from 'src/user/entities/user.entity';
 import { RolesGuard } from 'src/user/guards/roles-guard';
 import { jwtStrategy } from 'src/user/strategies/jwt.strategy';
+import { CompanyRole } from 'src/company-management/entities/company-management.entity';
 
 @Controller('jobapply')
 export class JobapplyController {
@@ -37,22 +38,25 @@ export class JobapplyController {
         return this.jobsservice.withdraw(jobid,currentuser)
     }
 
-    
-    @Roles(UserRole.JOB_SEEKER)
-    @UseGuards(JwtAuthGuard,RolesGuard)
-    @Post(':jobId/test')
-        async getJobTest(@Param('jobId') jobId: number, @CurrentUser() user: any) {
-        return this.jobsservice.getJobTest(jobId, user.id);
-    }
-    @Roles(UserRole.JOB_SEEKER)
-    @UseGuards(JwtAuthGuard,RolesGuard)
-    @Post(':jobId/test/submit')
-        async submitJobTest(
-        @Param('jobId') jobId: number,
-        @CurrentUser() user: any,
-        @Body('answers') answers: { questionId: number; selectedOptionId: number }[],
-        ) {
-        return this.jobsservice.submitJobTest(jobId, user.id, answers);
-    }
+@Post(':jobId/test/submit')
+@Roles(UserRole.JOB_SEEKER)
+@UseGuards(JwtAuthGuard,RolesGuard)
+    async submitJobTest(
+    @Param('jobId') jobId: number,
+    @CurrentUser() user: any,
+    @Body('answers') answers: { questionId: number; selectedOptionId: number }[],
+    ) {
+    return this.jobsservice.submitJobTest(jobId, user.id, answers);
+}
+
+@Roles(CompanyRole.COMPANY)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Get(':jobId/applicants/results')
+async getApplicantsResults(
+@Param('jobId') jobId: number,
+@CurrentUser() company: any,
+) {
+return this.jobsservice.getApplicantsWithResults(jobId, company.id);
+}
 
 }

@@ -10,6 +10,7 @@ import {
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 import { QuestionEntity } from './question.entity';
+import { JobExamAttempt } from './job_exam_attempts_entity';
 
 
 export enum EmploymentType {
@@ -65,6 +66,9 @@ export class JobEntity {
     eager: true,
   })
   questions: QuestionEntity[];
+  
+  @OneToMany(() => JobExamAttempt, attempt => attempt.job)
+  examAttempts: JobExamAttempt[];
 
 
   @Column('jsonb', { nullable: true })

@@ -12,6 +12,7 @@ import {
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 import { ResumeEntity } from 'src/resumes/entities/resume.entity';
 import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
+import { JobExamAttempt } from 'src/jobs/entities/job_exam_attempts_entity';
 
 
 export enum UserRole {
@@ -87,6 +88,9 @@ export class UserEntity {
 
   @Column({ type: 'varchar', length: 255, nullable: true })
   profileImage: string;
+
+  @OneToMany(() => JobExamAttempt, attempt => attempt.user)
+  examAttempts: JobExamAttempt[];
 
   @Column({ type: 'boolean', default: true })
   isActive: boolean;

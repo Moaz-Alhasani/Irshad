@@ -13,6 +13,7 @@ import { QuestionEntity } from './entities/question.entity';
 import { OptionEntity } from './entities/option.entity';
 import { JobResponseDto } from './dto/JobResponse.dto';
 import { JobDetailDto } from './dto/job-details.dto';
+import { JobExamAttempt } from './entities/job_exam_attempts_entity';
 
 interface FlaskEmbeddingResponse {
   embedding: number[];
@@ -29,6 +30,8 @@ export class JobsService {
     private readonly questionRepository: Repository<QuestionEntity>,
     @InjectRepository(OptionEntity)
     private readonly optionRepository: Repository<OptionEntity>,
+    @InjectRepository(JobExamAttempt)
+    private readonly jobExamAttemptRepository :Repository<JobExamAttempt>
   ) {}
 
 async createJob(createJobDto: CreateJobDto, companyId: number, company: any): Promise<JobEntity> {
@@ -80,12 +83,26 @@ async addQuestion(jobId: number, createQuestionDto: CreateQuestionDto) {
     return { message: 'Questions Added successfully' };
   }
 
-async getShuffledJobQuestions(jobId: number) {
+async getShuffledJobQuestions(jobId: number, userId: number) {
+  
+ const hasAttempted = await this.jobExamAttemptRepository.findOne({
+    where: {
+      user: { id: userId },
+      job: { id: jobId },
+    },
+  });
+
+  if (hasAttempted) {
+    throw new ForbiddenException('You have already taken this test');
+  }
+
   const job = await this.jobRepository.findOne({
     where: { id: jobId },
     relations: ['questions', 'questions.options'],
   });
+
   if (!job) throw new NotFoundException('Job not found');
+
   const shuffleArray = <T>(array: T[]): T[] => {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -94,6 +111,7 @@ async getShuffledJobQuestions(jobId: number) {
     }
     return arr;
   };
+
   return job.questions.map(q => ({
     id: q.id,
     questionText: q.questionText,

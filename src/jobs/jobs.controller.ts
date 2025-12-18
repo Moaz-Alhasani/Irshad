@@ -106,9 +106,14 @@ export class JobsController {
 
 
 @Get(':jobId/shuffled-questions')
-async getShuffledQuestions(@Param('jobId') jobId: number) {
-  return this.jobsService.getShuffledJobQuestions(jobId);
+@Roles(UserRole.JOB_SEEKER)
+@UseGuards(JwtAuthGuard,RolesGuard)
+async getShuffledQuestions(
+  @Param('jobId',ParseIntPipe) jobId: number,
+  @CurrentUser()currentUser:any) {
+        return this.jobsService.getShuffledJobQuestions(jobId,currentUser.id);
 }
+
   @Roles(CompanyRole.COMPANY)
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Put(':id')

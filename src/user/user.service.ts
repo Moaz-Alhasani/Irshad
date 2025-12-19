@@ -533,7 +533,10 @@ public async resendOtp(userEmail: string, fingerprint?: string) {
   const user = await this.userRepository.findOne({
     where: { email: userEmail },
   });
-
+  console.log(user);
+  
+  console.log(userEmail,"s");
+  
   if (!user) {
     throw new NotFoundException('User not found');
   }

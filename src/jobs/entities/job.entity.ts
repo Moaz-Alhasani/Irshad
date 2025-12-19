@@ -70,6 +70,9 @@ export class JobEntity {
   @OneToMany(() => JobExamAttempt, attempt => attempt.job)
   examAttempts: JobExamAttempt[];
 
+   // إضافة هذا الحقل
+  @Column({ type: 'int', default: 5 }) // 5 دقائق افتراضياً
+  testDuration: number;
 
   @Column('jsonb', { nullable: true })
   embedding: number[];

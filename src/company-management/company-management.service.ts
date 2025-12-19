@@ -1,4 +1,4 @@
-import { ForbiddenException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCompanyManagementDto } from './dto/create-company-management.dto';
 import { UpdateCompanyManagementDto } from './dto/update-company-management.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,6 +14,7 @@ import { JobEntity } from 'src/jobs/entities/job.entity';
 import { ApplicationStatus, JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 import { generateFingerprint } from 'src/utils/fingerprint';
 import { Request } from 'express';
+
 
 @Injectable()
 export class CompanyManagementService {
@@ -310,7 +311,75 @@ public async searchCompanyByName(keyword: string): Promise<CompanyEntity[]> {
     throw new NotFoundException(`No companies found for "${keyword}"`);
   }
 
-  return companies;
+
+  const mappedCompanies = companies.map((company) => ({
+    ...company,
+    email:company.email,
+    status: company.isVerified ? 'مقبول' : 'معلّق',
+  }));
+
+  return mappedCompanies;
+}
+
+
+async createCompany(
+  dto: CreateCompanyManagementDto,
+  logoPath?: string | null,
+): Promise<CompanyEntity> {
+  const existing = await this.companyRepository.findOne({ where: { email: dto.email } });
+  if (existing) throw new ConflictException(`Company with ${dto.email} already exists`);
+  const hashedPassword = await this.authService.hashPassword(dto.password);
+  const newCompany = this.companyRepository.create({
+    companyName: dto.companyName,
+    companyWebsite: dto.companyWebsite,
+    companyLocation: dto.companyLocation,
+    email: dto.email,
+    password: hashedPassword,
+    companyLogo: logoPath ?? undefined,
+    isVerified: true, 
+  });
+
+  const savedCompany = await this.companyRepository.save(newCompany);
+
+  const { password, ...companyWithoutPassword } = savedCompany;
+
+  return companyWithoutPassword as CompanyEntity;
+}
+
+
+public async getApplicantsForJob(jobId: number, companyId: number) {
+  const job=await this.jobsRepository.findOne({
+    where:{
+      id:jobId,
+    },
+    relations: ['company'],
+  })
+
+  if(!job){
+    throw new NotFoundException(`job with ${jobId} not found`)
+  }
+
+  if (job.company.id !== companyId) {
+    throw new ForbiddenException(
+      'You are not allowed to view applicants for this job',
+    );
+  }
+
+  const Appicats= this.jobApplyRepository.find({
+    where: {
+      job: {
+        id: jobId,
+        company: { id: companyId },
+      },
+    },
+    relations: ['user', 'resume', 'job'],
+    order: {
+      ranking_score: 'DESC',
+    },
+  });
+
+  return Appicats
+  
 }
 
 }

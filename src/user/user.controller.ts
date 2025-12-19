@@ -383,4 +383,27 @@ async searchofuser(@Body('username') username: string) {
     }
     return this.authservice.getAllUsers();
   }
+
+
+  @Get('my-applications/accepted')
+  @Roles(UserRole.JOB_SEEKER)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async getAccepted(@CurrentUser()currentUser:any) {
+    return await this.authservice.getAcceptedApplications(currentUser.id);
+  }
+
+  @Get('my-applications/rejected')
+  @Roles(UserRole.JOB_SEEKER)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async getRejected(@CurrentUser()currentUser:any) {
+    return await this.authservice.getRejectedApplications(currentUser.id);
+  }
+
+  @Get('my-applications/pending')
+  @Roles(UserRole.JOB_SEEKER)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async getPending(@CurrentUser()currentUser:any) {
+    return await this.authservice.getPendingApplications(currentUser.id);
+  }
+
 }

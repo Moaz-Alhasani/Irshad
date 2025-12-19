@@ -137,28 +137,38 @@ async LoginCompany(
     return this.companyManagementService.getcompanycount()
   }
 
-@Get('CompaniesStatus')
-@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-@UseGuards(JwtAuthGuard, RolesGuard)
-async getCompanyStatus(
-  @Query('status') status?: 'all' | 'pending' | 'approved',
-) {
-  return this.companyManagementService.getAllCompaniesWithStatus(status);
-}
+  @Get('CompaniesStatus')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getCompanyStatus(
+    @Query('status') status?: 'all' | 'pending' | 'approved',
+  ) {
+    return this.companyManagementService.getAllCompaniesWithStatus(status);
+  }
 
 
-@Post('search-company')
-@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-@UseGuards(JwtAuthGuard, RolesGuard)
-async searchCompany(@Body('keyword') keyword: string) {
-  return this.companyManagementService.searchCompanyByName(keyword);
-}
+  @Post('search-company')
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async searchCompany(@Body('keyword') keyword: string) {
+    return this.companyManagementService.searchCompanyByName(keyword);
+  }
 
-@Get("pending-companies")
-@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-@UseGuards(JwtAuthGuard, RolesGuard)
-async getPendingCompanies() {
-  return await this.companyManagementService.getPendingCompaniesWithCount();
-}
+  @Get("pending-companies")
+  @Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getPendingCompanies() {
+    return await this.companyManagementService.getPendingCompaniesWithCount();
+  }
 
+
+  @Get("company/job/:jobId/applicants")
+  @Roles(CompanyRole.COMPANY)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async getApplicants(
+    @Param('jobId',ParseIntPipe)jobId:number,
+    @CurrentUser()currentUser:any
+  ){
+    return await this.companyManagementService.getApplicantsForJob(jobId,currentUser.id)
+  }
 }

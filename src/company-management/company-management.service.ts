@@ -313,4 +313,39 @@ public async searchCompanyByName(keyword: string): Promise<CompanyEntity[]> {
   return companies;
 }
 
+public async getApplicantsForJob(jobId: number, companyId: number) {
+  const job=await this.jobsRepository.findOne({
+    where:{
+      id:jobId,
+    },
+    relations: ['company'],
+  })
+
+  if(!job){
+    throw new NotFoundException(`job with ${jobId} not found`)
+  }
+
+  if (job.company.id !== companyId) {
+    throw new ForbiddenException(
+      'You are not allowed to view applicants for this job',
+    );
+  }
+
+  const Appicats= this.jobApplyRepository.find({
+    where: {
+      job: {
+        id: jobId,
+        company: { id: companyId },
+      },
+    },
+    relations: ['user', 'resume', 'job'],
+    order: {
+      ranking_score: 'DESC',
+    },
+  });
+
+  return Appicats
+  
+}
+
 }

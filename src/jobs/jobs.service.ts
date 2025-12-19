@@ -85,7 +85,6 @@ async addQuestion(jobId: number, createQuestionDto: CreateQuestionDto) {
 
     return { message: 'Questions Added successfully' };
   }
-
 // في jobs.service.ts
 async getShuffledJobQuestions(jobId: number, userId: number) {
   // تحقق أن المستخدم متقدم على الوظيفة
@@ -117,9 +116,19 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
     return arr;
   };
 
+  // إرجاع البيانات مع testDuration
+  return {
+    testDuration: job.testDuration || 5, // إضافة testDuration
+    questions: job.questions.map(q => ({
+      id: q.id,
+      questionText: q.questionText,
+      options: shuffleArray(
+        q.options.map(o => ({ id: o.id, text: o.text }))
+      ),
+    })),
+  };
+}  
 
-}
-  
 async getJobDetails(id: number): Promise<JobDetailDto> {
     const job = await this.jobRepository.findOne({
       where: { id },

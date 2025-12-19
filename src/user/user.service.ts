@@ -246,25 +246,25 @@ export class AuthService {
     return this.companyRepository.save(company)
   }
 
-  async AdminNonAcceptTheCompany(compid:number){
-    const company=await this.companyRepository.findOne({where:{id:compid}})
-    if(!company){
-      throw new NotFoundException(`company with ${compid} id is not found`)
-    }
-      await this.MailService.sendEmail({
-      email: company.email,
-      subject: 'Company Application Rejected',
-      message: `
-        Dear ${company.companyName},
-        Your company application was not approved.
-        You may apply again later.
-        Irshad Team`
-    });
-    await this.companyRepository.remove(company);
-    return `the company with ${compid} has been refused`
+async AdminNonAcceptTheCompany(compid:number){
+  const company=await this.companyRepository.findOne({where:{id:compid}})
+  if(!company){
+    throw new NotFoundException(`company with ${compid} id is not found`)
   }
 
+  company.isVerified = false; 
+  await this.MailService.sendEmail({
+    email: company.email,
+    subject: 'Company Application Rejected',
+    message: `
+      Dear ${company.companyName},
+      Your company application was not approved.
+      You may apply again later.
+      Irshad Team`
+  });
 
+  return this.companyRepository.save(company);
+}
 
   async getUserWithResume(userId: number) {
     const user = await this.userRepository.findOne({

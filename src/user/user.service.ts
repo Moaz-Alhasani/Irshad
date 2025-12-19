@@ -27,6 +27,7 @@ import { CurrentUser } from './decorators/current_user.decorators';
 import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { ApplicationStatus, JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 
 
 interface FlaskSimilarityResponse {
@@ -49,7 +50,8 @@ export class AuthService {
     private ComapnyService:CompanyManagementService,
     private readonly jobsService: JobsService,
     @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>,
-    private MailService:MailService
+    private MailService:MailService,
+    @InjectRepository(JobApplyEntity) private jobApplyRepository:Repository<JobApplyEntity>
   ) {}
 
   async register(registerDto: RegisterDto,imagePath: string | null,fingerprint:string) {
@@ -664,6 +666,37 @@ public async getUserWhoVerifyFalse(): Promise<number> {
   });
 
   return userNotVerify;
+}
+
+public async getAcceptedApplications(userId: number) {
+  return await this.jobApplyRepository.find({
+    where: {
+      user: { id: userId },
+      application_status: ApplicationStatus.ACCEPTED,
+    },
+    relations: ['job', 'job.company'],
+  });
+}
+
+public async getRejectedApplications(userId: number) {
+  return await this.jobApplyRepository.find({
+    where: {
+      user: { id: userId },
+      application_status: ApplicationStatus.REJECTED,
+    },
+    relations: ['job', 'job.company'],
+  });
+
+}
+
+public async getPendingApplications(userId: number) {
+  return await this.jobApplyRepository.find({
+    where: {
+      user: { id: userId },
+      application_status:ApplicationStatus.PENDING,
+    },
+    relations: ['job', 'job.company'],
+  });
 }
 
 }

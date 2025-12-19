@@ -19,10 +19,11 @@ import { MailModule } from './gobal/mail.module';
 import { RefreshTokenEntity } from './entities/refreshToken.entity';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { JobapplyModule } from 'src/jobapply/jobapply.module';
+import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([UserEntity, CompanyEntity, ResumeEntity,RefreshTokenEntity]),
+    TypeOrmModule.forFeature([UserEntity, CompanyEntity, ResumeEntity,RefreshTokenEntity,JobApplyEntity]),
     PassportModule,
     JwtModule.register({
        secret: process.env.JWT_SECRET || 'jwt_secret',

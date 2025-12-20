@@ -711,37 +711,86 @@ public async getUserWhoVerifyFalse(): Promise<number> {
 }
 
 public async getAcceptedApplications(userId: number) {
-  return await this.jobApplyRepository.find({
+  const applications = await this.jobApplyRepository.find({
     where: {
       user: { id: userId },
       application_status: ApplicationStatus.ACCEPTED,
     },
     relations: ['job', 'job.company'],
   });
+    return applications.map(app => ({
+    id: app.job.id,
+    title: app.job.title,
+    type: app.job.employmentType?.toUpperCase(),
+    location: app.job.location,
+    companyName: app.job.company.companyName,
+    description: app.job.description,
+    skills: app.job.requiredSkills.join(', '),
+    experience: app.job.requiredExperience
+      ? `${app.job.requiredExperience}+ years`
+      : null,
+    education: JSON.stringify(app.job.requiredEducation),
+    hasTest: app.job.questions && app.job.questions.length > 0,
+    employmentType: app.job.employmentType,
+    image: app.job.image,
+    createdAt: app.job.createdAt,
+  }));
+
 }
 
 public async getRejectedApplications(userId: number) {
-  return await this.jobApplyRepository.find({
+  const applications = await this.jobApplyRepository.find({
     where: {
       user: { id: userId },
       application_status: ApplicationStatus.REJECTED,
     },
     relations: ['job', 'job.company'],
   });
+   return applications.map(app => ({
+    id: app.job.id,
+    title: app.job.title,
+    type: app.job.employmentType?.toUpperCase(),
+    location: app.job.location,
+    companyName: app.job.company.companyName,
+    description: app.job.description,
+    skills: app.job.requiredSkills.join(', '),
+    experience: app.job.requiredExperience
+      ? `${app.job.requiredExperience}+ years`
+      : null,
+    education: JSON.stringify(app.job.requiredEducation),
+    hasTest: app.job.questions && app.job.questions.length > 0,
+    employmentType: app.job.employmentType,
+    image: app.job.image,
+    createdAt: app.job.createdAt,
+  }));
 
 }
 
 public async getPendingApplications(userId: number) {
-  return await this.jobApplyRepository.find({
+  const applications = await this.jobApplyRepository.find({
     where: {
       user: { id: userId },
-      application_status:ApplicationStatus.PENDING,
+      application_status: ApplicationStatus.PENDING,
     },
     relations: ['job', 'job.company'],
   });
+    return applications.map(app => ({
+    id: app.job.id,
+    title: app.job.title,
+    type: app.job.employmentType?.toUpperCase(),
+    location: app.job.location,
+    companyName: app.job.company.companyName,
+    description: app.job.description,
+    skills: app.job.requiredSkills.join(', '),
+    experience: app.job.requiredExperience
+      ? `${app.job.requiredExperience}+ years`
+      : null,
+    education: JSON.stringify(app.job.requiredEducation),
+    hasTest: app.job.questions && app.job.questions.length > 0,
+    employmentType: app.job.employmentType,
+    image: app.job.image,
+    createdAt: app.job.createdAt,
+  }));
 }
-
-
-
 
 }

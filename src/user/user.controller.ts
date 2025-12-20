@@ -196,6 +196,15 @@ export class AuthController {
   deleteUser(@Param('id') id: number) {
     return this.authservice.deleteUser(id);
   }
+  @Get('user/:id')
+  @UseGuards(JwtAuthGuard)
+  async getUserById(@Param('id', ParseIntPipe) id: number, @CurrentUser() currentUser: any) {
+    if (currentUser.role !== UserRole.ADMIN && currentUser.id !== id) {
+      throw new ForbiddenException('You can only access your own profile');
+    }
+    return this.authservice.getUserById(id);
+  }
+
 
   @Post('accept/:id')
   @Roles(UserRole.ADMIN)
@@ -210,6 +219,14 @@ export class AuthController {
   @UseGuards(JwtAuthGuard,RolesGuard)
   NonacceptTheCompany(@Param('id',ParseIntPipe)compid:number){
     return this.authservice.AdminNonAcceptTheCompany(compid)
+  }
+
+
+    @Post('deletecompanybyadmin/:id')
+  @Roles(UserRole.ADMIN)
+  @UseGuards(JwtAuthGuard,RolesGuard)
+  async DeleteTheCompany(@Param('id',ParseIntPipe)compid:number){
+    return this.authservice.AdminDeleteTheCompany(compid)
   }
 
   @Get('recommended-jobs')
@@ -381,7 +398,7 @@ async searchofuser(@Body('username') username: string) {
     if (role) {
       return this.authservice.getUsersByRole(role);
     }
-    return this.authservice.getAllUsers();
+    return this.authservice.getUsersByRole();
   }
 
 

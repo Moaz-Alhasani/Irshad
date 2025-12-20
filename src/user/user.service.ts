@@ -98,6 +98,8 @@ export class AuthService {
       email: registerDto.email,
       password: hashedPassword,
       role: UserRole.ADMIN,
+      isActive:true,
+      isVerify:true
     });
     const savedUser = await this.userRepository.save(newUser);
     const { password, ...userWithoutPassword } = savedUser;
@@ -148,6 +150,12 @@ export class AuthService {
     );
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+    if (!user.isActive){
+      throw new UnauthorizedException('Your account is deactivated. Please contact support.');
+    }
+    if (!user.isVerify){
+      throw new UnauthorizedException('Your account is deactivated. Please contact support.');
     }
     const tokens = this.generateToken(user,fingerprint);
     const { password, ...userWithoutPassword } = user;
@@ -266,6 +274,26 @@ async AdminNonAcceptTheCompany(compid:number){
   return this.companyRepository.save(company);
 }
 
+
+async AdminDeleteTheCompany(compid:number){
+  const company=await this.companyRepository.findOne({where:{id:compid}})
+  if(!company){
+    throw new NotFoundException(`company with ${compid} id is not found`)
+  }
+  await this.MailService.sendEmail({
+    email: company.email,
+    subject: 'Company Application Rejected',
+    message: `
+      Dear ${company.companyName},
+      Your company application was not approved.
+      You may apply again later.
+      Irshad Team`
+  });
+  this.companyRepository.delete(compid)
+
+  return this.companyRepository.save(company);
+}
+
   async getUserWithResume(userId: number) {
     const user = await this.userRepository.findOne({
       where: { id: userId },
@@ -348,16 +376,24 @@ const flaskRes = await axios.post<{ jobId: number; score: number }[]>(
 
   // the settings for user 
   // updateUserStatus 
-  async undisable (userId :number){
-    const user = await this.userRepository.findOne({
-      where:{id:userId}
-    })
-    if (!user) {
-      throw new NotFoundException('User not found')
-    }
-    user.isActive = true;
-    this.userRepository.save(user);
+async undisable(userId: number) {
+  const user = await this.userRepository.findOne({
+    where: { id: userId },
+  });
+
+  if (!user) {
+    throw new NotFoundException('User not found');
   }
+
+  if (!user.isVerify) {
+    throw new BadRequestException('Unverified user cannot be activated');
+  }
+
+  user.isActive = true;
+  await this.userRepository.save(user);
+
+  return { message: 'The active user has been activated' };
+}
 
   async disable (userId :number){
     const user = await this.userRepository.findOne({
@@ -618,20 +654,23 @@ public async resendOtp(userEmail: string, fingerprint?: string) {
     }
   }
 
-  public async getUsersByRole(role: UserRole): Promise<any[]> {
-    const users = await this.userRepository.find({
-      where: { role },
-    });
+  public async getUsersByRole(role?: UserRole): Promise<any[]> {
+const users = await this.userRepository.find();
+const mappedUsers = users.map(u => ({
+  id: u.id,
+  fullName: `${u.firstName} ${u.lastName}`,
+  email: u.email,
+  role: u.role,
+  roleLabel: u.role === 'super_admin' ? 'مدير عام' : u.role === 'admin' ? 'أدمن' : 'مستخدم',
+  isActive: u.isActive,
+  isVerify: u.isVerify,
+  status: !u.isVerify ? 'pending' : u.isActive ? 'active' : 'suspended',
+  createdAt: u.createdAt
+}));
+return mappedUsers;
+}
 
-    return users.map(user => ({
-      id: user.id,
-      fullName: `${user.firstName} ${user.lastName}`,
-      email: user.email,
-      role: this.mapRoleToLabel(user.role),
-      isActive: user.isActive,
-      createdAt: user.createdAt,
-    }));
-  }
+
 
 
 
@@ -701,5 +740,8 @@ public async getPendingApplications(userId: number) {
     relations: ['job', 'job.company'],
   });
 }
+
+
+
 
 }

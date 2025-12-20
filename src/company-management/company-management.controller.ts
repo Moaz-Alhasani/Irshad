@@ -110,6 +110,15 @@ async LoginCompany(
     return this.companyManagementService.getNumberofCompanyJobs(company);
   }
 
+
+  @Get('company/:id')
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN) // يمكن تعديل الصلاحيات حسب الحاجة
+@UseGuards(JwtAuthGuard, RolesGuard)
+async getCompany(@Param('id', ParseIntPipe) id: number) {
+  return this.companyManagementService.getCompanyById(id);
+}
+
+
   @Get(':jobId/applicants/count')
   @UseGuards(JwtAuthGuard)
   async getApplicantsCountOfJobs(@Param('jobId', ParseIntPipe) jobid: number, @CurrentUser() company: any) {

@@ -347,6 +347,32 @@ async createCompany(
 }
 
 
+public async getCompanyById(id: number): Promise<CompanyEntity> {
+  const company = await this.companyRepository.findOne({
+    where: { id },
+    select: [
+      'id',
+      'companyName',
+      'email',
+      'companyWebsite',
+      'companyLocation',
+      'companyLogo',
+      'isVerified',
+      'createdAt',
+    ],
+  });
+
+  if (!company) {
+    throw new NotFoundException(`Company with id ${id} not found`);
+  }
+
+  return {
+    ...company,
+    status: company.isVerified ? 'مقبول' : 'معلّق',
+  } as CompanyEntity;
+}
+
+
 public async getApplicantsForJob(jobId: number, companyId: number) {
   const job=await this.jobsRepository.findOne({
     where:{

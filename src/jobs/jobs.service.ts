@@ -138,7 +138,7 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
   };
 
   return {
-    testDurationMinutes: durationMinutes,
+    testDuration: durationMinutes,
     questions: job.questions.map(q => ({
       id: q.id,
       questionText: q.questionText,

@@ -114,15 +114,10 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
   if (!job)
     throw new NotFoundException('Job not found');
 
-
-  // 4️⃣ حساب مدة الاختبار (نستخدم الثواني داخلياً)
-  // Question.testDuration مخزن بالثواني (مثال: 600)
-  // Job.testDuration مخزن بالدقائق (مثال: 5)
-  const durationSeconds =
-    job.questions[0]?.testDuration ?? ((job.testDuration ?? 5) * 60);
-
+  // ✅ مدة الاختبار بالدقائق مباشرة
+  const durationMinutes = job.questions[0]?.testDuration; // إذا لم يوجد مدة محددة نستخدم 5 دقائق
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + durationSeconds * 1000);
+  const expiresAt = new Date(now.getTime() + durationMinutes * 60 * 1000); // تحويل الدقائق إلى مللي ثانية
 
   // 5️⃣ إنشاء Attempt
   await this.jobExamAttemptRepository.save({
@@ -142,10 +137,8 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
     return arr;
   };
 
-  // إرجاع البيانات مع مدة الاختبار (ثواني ودقائق) لخدمة الواجهة الأمامية
   return {
-    testDurationSeconds: durationSeconds,
-    testDurationMinutes: Math.ceil(durationSeconds / 60),
+    testDurationMinutes: durationMinutes,
     questions: job.questions.map(q => ({
       id: q.id,
       questionText: q.questionText,
@@ -158,6 +151,7 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
     })),
   };
 }
+
 
 
 

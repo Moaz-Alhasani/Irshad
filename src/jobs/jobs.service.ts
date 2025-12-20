@@ -69,7 +69,7 @@ async addQuestion(jobId: number, createQuestionDto: CreateQuestionDto) {
     const question = this.questionRepository.create({
       questionText: createQuestionDto.questionText,
       job,
-      testDuration: (createQuestionDto.testDuration || 10)*60,
+      testDuration: createQuestionDto.testDuration ,
     });
 
     const savedQuestion = await this.questionRepository.save(question);
@@ -116,10 +116,10 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
     }
     return arr;
   };
-
+  
   // إرجاع البيانات مع testDuration
   return {
-    testDuration: job.testDuration || 5, // إضافة testDuration
+    testDuration: job.questions[0].testDuration || 5,
     questions: job.questions.map(q => ({
       id: q.id,
       questionText: q.questionText,

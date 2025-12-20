@@ -24,4 +24,6 @@ export class QuestionEntity {
     eager: true, 
   })
   options: OptionEntity[];
+  @Column({ type: 'int', default: 600 })
+  testDuration: number;
 }

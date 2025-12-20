@@ -1,4 +1,4 @@
-import { IsArray, IsNotEmpty, IsString, ValidateNested, IsBoolean } from 'class-validator';
+import { IsArray, IsNotEmpty, IsString, ValidateNested, IsBoolean, IsOptional, IsInt, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class OptionDto {
@@ -18,4 +18,9 @@ export class CreateQuestionDto {
   @ValidateNested({ each: true })
   @Type(() => OptionDto)
   options: OptionDto[];
+  
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  testDuration?: number;
 }

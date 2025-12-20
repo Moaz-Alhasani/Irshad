@@ -14,7 +14,7 @@ import { OptionEntity } from './entities/option.entity';
 import { JobResponseDto } from './dto/JobResponse.dto';
 import { JobDetailDto } from './dto/job-details.dto';
 import { JobExamAttempt } from './entities/job_exam_attempts_entity';
-import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
+import { ApplicationStatus, JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 
 interface FlaskEmbeddingResponse {
   embedding: number[];
@@ -88,26 +88,47 @@ async addQuestion(jobId: number, createQuestionDto: CreateQuestionDto) {
   }
 // في jobs.service.ts
 async getShuffledJobQuestions(jobId: number, userId: number) {
-  // تحقق أن المستخدم متقدم على الوظيفة
+
+  // 1️⃣ تحقق أنه متقدم على الوظيفة
   const application = await this.jobApplyRepository.findOne({
     where: { job: { id: jobId }, user: { id: userId } },
   });
-  if (!application) throw new ForbiddenException('You must apply for this job before taking the test');
 
-  // تحقق أنه لم يأخذ الاختبار مسبقًا
-  const hasAttempted = await this.jobExamAttemptRepository.findOne({
+  if (!application)
+    throw new ForbiddenException('You must apply before taking the test');
+
+  // 2️⃣ تحقق أنه لم يبدأ الاختبار سابقًا
+  const existingAttempt = await this.jobExamAttemptRepository.findOne({
     where: { user: { id: userId }, job: { id: jobId } },
   });
-  if (hasAttempted) throw new ForbiddenException('You have already taken this test');
 
-  // جلب الوظيفة والأسئلة
+  if (existingAttempt)
+    throw new ForbiddenException('Test already started');
+
+  // 3️⃣ جلب الأسئلة
   const job = await this.jobRepository.findOne({
     where: { id: jobId },
     relations: ['questions', 'questions.options'],
   });
-  if (!job) throw new NotFoundException('Job not found');
 
-  // خلط الخيارات
+  if (!job)
+    throw new NotFoundException('Job not found');
+
+  // 4️⃣ حساب مدة الاختبار
+  const durationSeconds = job.questions[0]?.testDuration ?? 600;
+
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + durationSeconds * 1000);
+
+  // 5️⃣ إنشاء Attempt
+  await this.jobExamAttemptRepository.save({
+    user: { id: userId },
+    job: { id: jobId },
+    expiresAt,
+    submitted: false,
+  });
+
+  // 6️⃣ خلط الخيارات
   const shuffleArray = <T>(array: T[]): T[] => {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {
@@ -117,18 +138,59 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
     return arr;
   };
 
-  // إرجاع البيانات مع testDuration
   return {
-    testDuration: job.testDuration || 5, // إضافة testDuration
+    testDuration: durationSeconds,
+    expiresAt,
     questions: job.questions.map(q => ({
       id: q.id,
       questionText: q.questionText,
       options: shuffleArray(
-        q.options.map(o => ({ id: o.id, text: o.text }))
+        q.options.map(o => ({
+          id: o.id,
+          text: o.text,
+        })),
       ),
     })),
   };
-}  
+}
+
+
+async expireJobTest(jobId: number, userId: number) {
+
+  const attempt = await this.jobExamAttemptRepository.findOne({
+    where: { user: { id: userId }, job: { id: jobId } },
+    relations: ['user', 'job'],
+  });
+
+  if (!attempt)
+    throw new NotFoundException('Test not started');
+
+  if (attempt.submitted)
+    return { message: 'Test already submitted' };
+
+  if (new Date() < attempt.expiresAt)
+    return { message: 'Test still running' };
+
+  // ⛔ انتهى الوقت
+  attempt.score = 0;
+  attempt.submitted = true;
+  await this.jobExamAttemptRepository.save(attempt);
+
+  await this.jobApplyRepository.update(
+    { user: { id: userId }, job: { id: jobId } },
+    {
+      test_score: 0,
+      application_status: ApplicationStatus.TEST_COMPLETED,
+    },
+  );
+
+  return {
+    message: 'Test expired, score set to 0',
+    score: 0,
+  };
+}
+
+
 
 async getJobDetails(id: number): Promise<JobDetailDto> {
     const job = await this.jobRepository.findOne({

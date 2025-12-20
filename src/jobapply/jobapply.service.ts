@@ -167,42 +167,60 @@ async submitJobTest(
   userId: number,
   answers: { questionId: number; selectedOptionId: number }[],
 ) {
-  if (!answers || !Array.isArray(answers)) {
+  if (!Array.isArray(answers))
     throw new BadRequestException('Answers must be an array');
-  }
 
   const application = await this.jobApplyEntity.findOne({
     where: { job: { id: jobId }, user: { id: userId } },
-    relations: ['job', 'job.questions', 'job.questions.options', 'testAnswers'],
+    relations: ['job', 'job.questions', 'job.questions.options'],
   });
 
-  if (!application) throw new ForbiddenException('You have not applied to this job');
+  if (!application)
+    throw new ForbiddenException('You have not applied');
 
-  // تحقق أنه لم يتم تقديم الاختبار مسبقًا
-  const hasAttempted = await this.JobExamAttempt.findOne({
+
+  // تحقق اذا ما كان الوقت مسموح به للاجابة 
+  const attempt = await this.JobExamAttempt.findOne({
     where: { user: { id: userId }, job: { id: jobId } },
   });
-  if (hasAttempted) throw new ForbiddenException('You have already taken this test');
+
+  if (!attempt)
+    throw new ForbiddenException('Test not started');
+
+  if (attempt.submitted)
+    throw new ForbiddenException('Test already submitted');
+
+  if (new Date() > attempt.expiresAt)
+    throw new ForbiddenException('Time is over');
 
   let score = 0;
+
+  // ✅ هنا الحل
   const testAnswers: JobTestAnswerEntity[] = [];
 
   for (const ans of answers) {
-    const question = application.job.questions.find(q => q.id === ans.questionId);
+    const question = application.job.questions.find(
+      q => q.id === ans.questionId,
+    );
     if (!question) continue;
 
-    const option = question.options.find(o => o.id === ans.selectedOptionId);
+    const option = question.options.find(
+      o => o.id === ans.selectedOptionId,
+    );
     if (!option) continue;
 
-    const isCorrect = option.isCorrect;
-    if (isCorrect) score++;
+    if (option.isCorrect) score++;
 
-    const testAnswer = this.jobApplyEntity.manager.create(JobTestAnswerEntity, {
-      application,
-      question,
-      selectedOptionId: ans.selectedOptionId,
-      isCorrect,
-    });
+    const testAnswer = this.jobApplyEntity.manager.create(
+      JobTestAnswerEntity,
+      {
+        application,
+        question,
+        selectedOptionId: ans.selectedOptionId,
+        isCorrect: option.isCorrect,
+      },
+    );
+
     testAnswers.push(testAnswer);
   }
 
@@ -212,13 +230,9 @@ async submitJobTest(
   application.application_status = ApplicationStatus.TEST_COMPLETED;
   await this.jobApplyEntity.save(application);
 
-
-  await this.JobExamAttempt.save({
-    user: { id: userId },
-    job: { id: jobId },
-    score,
-    submittedAt: new Date(),
-  });
+  attempt.score = score;
+  attempt.submitted = true;
+  await this.JobExamAttempt.save(attempt);
 
   return {
     message: 'Test submitted successfully',
@@ -226,6 +240,7 @@ async submitJobTest(
     total: application.job.questions.length,
   };
 }
+
 
 
 

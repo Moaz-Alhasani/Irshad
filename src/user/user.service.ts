@@ -151,12 +151,12 @@ export class AuthService {
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    if (!user.isActive){
-      throw new UnauthorizedException('Your account is deactivated. Please contact support.');
-    }
-    if (!user.isVerify){
-      throw new UnauthorizedException('Your account is deactivated. Please contact support.');
-    }
+    // if (!user.isActive){
+    //   throw new UnauthorizedException('Your account is deactivated. Please contact support.');
+    // }
+    // if (!user.isVerify){
+    //   throw new UnauthorizedException('Your account is deactivated. Please contact support.');
+    // }
     const tokens = this.generateToken(user,fingerprint);
     const { password, ...userWithoutPassword } = user;
     return {

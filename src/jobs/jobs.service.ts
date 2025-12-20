@@ -69,7 +69,7 @@ async addQuestion(jobId: number, createQuestionDto: CreateQuestionDto) {
     const question = this.questionRepository.create({
       questionText: createQuestionDto.questionText,
       job,
-      testDuration: (createQuestionDto.testDuration || 10)*60,
+      testDuration: createQuestionDto.testDuration ,
     });
 
     const savedQuestion = await this.questionRepository.save(question);
@@ -114,8 +114,12 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
   if (!job)
     throw new NotFoundException('Job not found');
 
-  // 4️⃣ حساب مدة الاختبار
-  const durationSeconds = job.questions[0]?.testDuration ?? 600;
+
+  // 4️⃣ حساب مدة الاختبار (نستخدم الثواني داخلياً)
+  // Question.testDuration مخزن بالثواني (مثال: 600)
+  // Job.testDuration مخزن بالدقائق (مثال: 5)
+  const durationSeconds =
+    job.questions[0]?.testDuration ?? ((job.testDuration ?? 5) * 60);
 
   const now = new Date();
   const expiresAt = new Date(now.getTime() + durationSeconds * 1000);
@@ -138,9 +142,10 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
     return arr;
   };
 
+  // إرجاع البيانات مع مدة الاختبار (ثواني ودقائق) لخدمة الواجهة الأمامية
   return {
-    testDuration: durationSeconds,
-    expiresAt,
+    testDurationSeconds: durationSeconds,
+    testDurationMinutes: Math.ceil(durationSeconds / 60),
     questions: job.questions.map(q => ({
       id: q.id,
       questionText: q.questionText,
@@ -155,40 +160,7 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
 }
 
 
-async expireJobTest(jobId: number, userId: number) {
 
-  const attempt = await this.jobExamAttemptRepository.findOne({
-    where: { user: { id: userId }, job: { id: jobId } },
-    relations: ['user', 'job'],
-  });
-
-  if (!attempt)
-    throw new NotFoundException('Test not started');
-
-  if (attempt.submitted)
-    return { message: 'Test already submitted' };
-
-  if (new Date() < attempt.expiresAt)
-    return { message: 'Test still running' };
-
-  // ⛔ انتهى الوقت
-  attempt.score = 0;
-  attempt.submitted = true;
-  await this.jobExamAttemptRepository.save(attempt);
-
-  await this.jobApplyRepository.update(
-    { user: { id: userId }, job: { id: jobId } },
-    {
-      test_score: 0,
-      application_status: ApplicationStatus.TEST_COMPLETED,
-    },
-  );
-
-  return {
-    message: 'Test expired, score set to 0',
-    score: 0,
-  };
-}
 
 
 

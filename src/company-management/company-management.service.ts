@@ -408,4 +408,26 @@ public async getApplicantsForJob(jobId: number, companyId: number) {
   
 }
 
+
+public async getResumePath(jobApplyId: number, companyId: number) {
+  const application = await this.jobApplyRepository.findOne({
+    where: { id: jobApplyId },
+    relations: ['job', 'job.company', 'resume'],
+  });
+
+  if (!application) throw new NotFoundException('Application not found');
+
+  if (application.job.company.id !== companyId) {
+    throw new NotFoundException('Not allowed to view this resume');
+  }
+
+  const resumePath = application.resume.file_path;
+  const fullPath = path.resolve(resumePath);
+
+  if (!fs.existsSync(fullPath)) {
+    throw new NotFoundException('Resume file not found');
+  }
+
+  return fullPath;
+}
 }

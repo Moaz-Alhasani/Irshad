@@ -14,6 +14,7 @@ import { CompanyEntity, CompanyRole } from './entities/company-management.entity
 import { generateFingerprint } from 'src/utils/fingerprint';
 import {  Response } from 'express';
 import { UserRole } from 'src/user/entities/user.entity';
+import * as fs from 'fs';
 
 
 @Controller('company-management')
@@ -202,5 +203,15 @@ async createCompanyByAdmin(
   return this.companyManagementService.createCompany(dto, logoPath);
 }
 
+  @Get('job-apply/:id/resume/path')
+  @Roles(CompanyRole.COMPANY)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  async getResumePath(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() currentUser: any,
+  ) {
+    const filePath = await this.companyManagementService.getResumePath(id, currentUser.id);
+    return filePath ; 
+  }
 
 }

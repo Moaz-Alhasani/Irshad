@@ -114,16 +114,6 @@ async getShuffledQuestions(
 
 
 
-@Post(':jobId/test/expire')
-@Roles(UserRole.JOB_SEEKER)
-@UseGuards(JwtAuthGuard, RolesGuard)
-async expireTest(
-  @Param('jobId', ParseIntPipe) jobId: number,
-  @CurrentUser() user: any,
-) {
-  return this.jobsService.expireJobTest(jobId, user.id);
-}
-
 
   @Put(':id')
   @Roles(CompanyRole.COMPANY)

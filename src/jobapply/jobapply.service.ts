@@ -178,8 +178,7 @@ async submitJobTest(
   if (!application)
     throw new ForbiddenException('You have not applied');
 
-
-  // تحقق اذا ما كان الوقت مسموح به للاجابة 
+  // جلب Attempt
   const attempt = await this.JobExamAttempt.findOne({
     where: { user: { id: userId }, job: { id: jobId } },
   });
@@ -190,12 +189,27 @@ async submitJobTest(
   if (attempt.submitted)
     throw new ForbiddenException('Test already submitted');
 
-  if (new Date() > attempt.expiresAt)
-    throw new ForbiddenException('Time is over');
+  // ⚡ تعديل هنا: إذا انتهى الوقت
+  if (new Date() > attempt.expiresAt) {
+    // تحديث Attempt
+    attempt.score = 0;
+    attempt.submitted = true;
+    await this.JobExamAttempt.save(attempt);
 
+    // تحديث حالة التقديم
+    application.test_score = 0;
+    application.application_status = ApplicationStatus.TEST_COMPLETED;
+    await this.jobApplyEntity.save(application);
+
+    return {
+      message: 'Time is over, score set to 0',
+      score: 0,
+      total: application.job.questions.length,
+    };
+  }
+
+  // إذا الوقت لم ينتهِ، نستمر بالحساب الطبيعي للنتيجة
   let score = 0;
-
-  // ✅ هنا الحل
   const testAnswers: JobTestAnswerEntity[] = [];
 
   for (const ans of answers) {

@@ -69,7 +69,7 @@ async addQuestion(jobId: number, createQuestionDto: CreateQuestionDto) {
     const question = this.questionRepository.create({
       questionText: createQuestionDto.questionText,
       job,
-      testDuration: createQuestionDto.testDuration || 600,
+      testDuration: (createQuestionDto.testDuration || 10)*60,
     });
 
     const savedQuestion = await this.questionRepository.save(question);

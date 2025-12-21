@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { Controller, Get, Post, Body, Param, Put, UseGuards, UseInterceptors, UploadedFile, ParseIntPipe, Req, Res, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, UseGuards, UseInterceptors, UploadedFile, ParseIntPipe, Req, Res, Query, Patch } from '@nestjs/common';
 import { CompanyManagementService } from './company-management.service';
 import { CreateCompanyManagementDto } from './dto/create-company-management.dto';
 import { UpdateCompanyManagementDto } from './dto/update-company-management.dto';
@@ -15,6 +15,7 @@ import { generateFingerprint } from 'src/utils/fingerprint';
 import {  Response } from 'express';
 import { UserRole } from 'src/user/entities/user.entity';
 import * as fs from 'fs';
+import { RejectApplicationDto } from './dto/RejectApplicationDto';
 
 
 @Controller('company-management')
@@ -133,12 +134,16 @@ async getCompany(@Param('id', ParseIntPipe) id: number) {
     return this.companyManagementService.acceptTheUseraftertheinterviewservice(userid);
   }
 
-  @Get('rejectuser/:userid')
-  @Roles(CompanyRole.COMPANY)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async rejectTheUseraftertheinterview(@Param('userid', ParseIntPipe) userid: number) {
-    return this.companyManagementService.rejectTheUseraftertheinterviewservice(userid);
-  }
+@Get('rejectuser/:userid')
+@Roles(CompanyRole.COMPANY)
+@UseGuards(JwtAuthGuard, RolesGuard)
+async rejectTheUseraftertheinterview(
+  @Param('userid', ParseIntPipe) userid: number,
+  @Body() dto: RejectApplicationDto,
+) {
+  return this.companyManagementService
+    .rejectTheUseraftertheinterviewservice(userid, dto.feedback);
+}
 
   
   @Get('companyCount')

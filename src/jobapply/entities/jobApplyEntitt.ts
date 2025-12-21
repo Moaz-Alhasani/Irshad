@@ -67,6 +67,9 @@ export class JobApplyEntity {
     @Column({ type: 'int', nullable: true })
     test_score: number;
 
+    @Column({ type: 'text', nullable: true })
+    rejectionFeedback: string | null;
+
     @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
     createdAt: Date;
 

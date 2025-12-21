@@ -14,6 +14,8 @@ import { JobEntity } from 'src/jobs/entities/job.entity';
 import { ApplicationStatus, JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 import { generateFingerprint } from 'src/utils/fingerprint';
 import { Request } from 'express';
+import { MailService } from '../user/gobal/MailService';
+
 
 
 @Injectable()
@@ -33,7 +35,7 @@ export class CompanyManagementService {
 
     @Inject(forwardRef(() => AuthService))
     private readonly authService: AuthService,
-
+    private readonly mailService: MailService,
     private readonly jwtService: JwtService,
   ) {}
 
@@ -146,19 +148,51 @@ export class CompanyManagementService {
     return { message: 'User application accepted', application: jobApplication };
   }
 
-  async rejectTheUseraftertheinterviewservice(userId: number) {
-    const jobApplication = await this.jobApplyRepository.findOne({
-      where: { user: { id: userId }, application_status: ApplicationStatus.PENDING },
-      relations: ['user', 'job', 'resume'],
+async rejectTheUseraftertheinterviewservice(userId: number,feedback: string,) {
+  const jobApplication = await this.jobApplyRepository.findOne({
+    where: {
+      user: { id: userId },
+      application_status: ApplicationStatus.PENDING,
+    },
+    relations: ['user', 'job', 'job.company'],
+  });
+
+  if (!jobApplication)
+    throw new NotFoundException('No pending application found for this user.');
+
+  
+  jobApplication.application_status = ApplicationStatus.REJECTED;
+  jobApplication.rejectionFeedback = feedback;
+
+  await this.jobApplyRepository.save(jobApplication);
+
+  await this.mailService.sendEmail({
+    email: jobApplication.user.email,
+    subject: 'Job Application Update',
+    message: `
+        Dear ${jobApplication.user.firstName} ${jobApplication.user.lastName},
+
+        Thank you for attending the interview for the position:
+        "${jobApplication.job.title}"
+
+        After careful consideration, we regret to inform you that you were not selected for this role.
+
+        Feedback from the company:
+        "${feedback}"
+
+        We appreciate your time and encourage you to apply again in the future.
+
+        Best regards,
+        ${jobApplication.job.company.companyName}
+        Irshad Platform Team
+        `,
     });
 
-    if (!jobApplication) throw new NotFoundException('No pending application found for this user.');
+  return {
+    message: 'User application rejected and feedback email sent successfully',
+  };
+}
 
-    jobApplication.application_status = ApplicationStatus.REJECTED;
-    await this.jobApplyRepository.save(jobApplication);
-
-    return { message: 'User application rejected', application: jobApplication };
-  }
 
   private generateToken(company: CompanyEntity, fingerprint: string) {
   return {

@@ -716,9 +716,19 @@ public async getAcceptedApplications(userId: number) {
       user: { id: userId },
       application_status: ApplicationStatus.ACCEPTED,
     },
-    relations: ['job', 'job.company'],
+    relations: [
+      'job',
+      'job.company',
+      'interviews',
+    ],
+    order: {
+      interviews: {
+        createdAt: 'DESC', 
+      },
+    },
   });
-    return applications.map(app => ({
+
+  return applications.map(app => ({
     id: app.job.id,
     title: app.job.title,
     type: app.job.employmentType?.toUpperCase(),
@@ -734,9 +744,18 @@ public async getAcceptedApplications(userId: number) {
     employmentType: app.job.employmentType,
     image: app.job.image,
     createdAt: app.job.createdAt,
-  }));
 
+    interview: app.interviews?.length
+      ? {
+          date: app.interviews[0].interviewDate,
+          time: app.interviews[0].interviewTime,
+          notes: app.interviews[0].additionalNotes,
+          meetingUrl: app.interviews[0].meetingUrl,
+        }
+      : null,
+  }));
 }
+
 
 public async getRejectedApplications(userId: number) {
   const applications = await this.jobApplyRepository.find({

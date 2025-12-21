@@ -47,6 +47,7 @@ export class CompanyEntity {
   @Column({name:'company_logo', type:'varchar', length:255, nullable:true})
   companyLogo?: string;
 
+  
   @Column({
     type: 'enum',
     enum: CompanyRole,

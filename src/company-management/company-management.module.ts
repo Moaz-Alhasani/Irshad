@@ -10,6 +10,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
 import { JobsModule } from 'src/jobs/jobs.module';
 import { JobEntity } from 'src/jobs/entities/job.entity';
+import { MailService } from 'src/user/gobal/MailService';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { JobEntity } from 'src/jobs/entities/job.entity';
       JobsModule
   ],
   controllers: [CompanyManagementController],
-  providers: [CompanyManagementService],
+  providers: [CompanyManagementService,MailService],
   exports: [CompanyManagementService]
 })
 export class CompanyManagementModule {}

@@ -127,22 +127,23 @@ async getCompany(@Param('id', ParseIntPipe) id: number) {
     return this.companyManagementService.numberofApplyForJobs(jobid, company);
   }
 
-  @Get('acceptuser/:userid')
+  @Post('acceptuser/:userid')
   @Roles(CompanyRole.COMPANY)
   @UseGuards(JwtAuthGuard, RolesGuard)
   async acceptTheUseraftertheinterview(@Param('userid', ParseIntPipe) userid: number) {
     return this.companyManagementService.acceptTheUseraftertheinterviewservice(userid);
   }
 
-@Get('rejectuser/:userid')
+@Post(':jobId/rejectuser/:userid')
 @Roles(CompanyRole.COMPANY)
 @UseGuards(JwtAuthGuard, RolesGuard)
 async rejectTheUseraftertheinterview(
   @Param('userid', ParseIntPipe) userid: number,
+  @Param('jobId', ParseIntPipe) jobId: number,
   @Body() dto: RejectApplicationDto,
 ) {
   return this.companyManagementService
-    .rejectTheUseraftertheinterviewservice(userid, dto.feedback);
+    .rejectTheUserAfterTheInterviewService(userid,jobId,dto.feedback);
 }
 
   
@@ -208,15 +209,15 @@ async createCompanyByAdmin(
   return this.companyManagementService.createCompany(dto, logoPath);
 }
 
-  @Get('job-apply/:id/resume/path')
+  @Get('/job-apply/:jobId/resume/:userId/path')
   @Roles(CompanyRole.COMPANY)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async getResumePath(
-    @Param('id', ParseIntPipe) id: number,
-    @CurrentUser() currentUser: any,
-  ) {
-    const filePath = await this.companyManagementService.getResumePath(id, currentUser.id);
-    return filePath ; 
-  }
-
+  @UseGuards(JwtAuthGuard, RolesGuard) 
+  async getResumePath( 
+    @Param('jobId', ParseIntPipe) jobId: number, 
+    @Param('userId', ParseIntPipe) userId: number, 
+    @CurrentUser() currentUser: any, ) 
+    { 
+      const filePath = 
+      await this.companyManagementService.getResumePath(jobId, currentUser.id); 
+      return { path: filePath }; }
 }

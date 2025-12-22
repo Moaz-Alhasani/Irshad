@@ -1,4 +1,4 @@
-import { ConflictException, ForbiddenException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateCompanyManagementDto } from './dto/create-company-management.dto';
 import { UpdateCompanyManagementDto } from './dto/update-company-management.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -148,51 +148,139 @@ export class CompanyManagementService {
     return { message: 'User application accepted', application: jobApplication };
   }
 
-async rejectTheUseraftertheinterviewservice(userId: number,feedback: string,) {
+// async rejectTheUseraftertheinterviewservice(userId: number,feedback: string,) {
+//   const jobApplication = await this.jobApplyRepository.findOne({
+//     where: {
+//       user: { id: userId },
+//       application_status: ApplicationStatus.PENDING,
+//     },
+//     relations: ['user', 'job', 'job.company'],
+//   });
+
+//   if (!jobApplication)
+//     throw new NotFoundException('No pending application found for this user.');
+
+  
+//   jobApplication.application_status = ApplicationStatus.REJECTED;
+//   jobApplication.rejectionFeedback = feedback;
+
+//   await this.jobApplyRepository.save(jobApplication);
+
+//   await this.mailService.sendEmail({
+//     email: jobApplication.user.email,
+//     subject: 'Job Application Update',
+//     message: `
+//         Dear ${jobApplication.user.firstName} ${jobApplication.user.lastName},
+
+//         Thank you for attending the interview for the position:
+//         "${jobApplication.job.title}"
+
+//         After careful consideration, we regret to inform you that you were not selected for this role.
+
+//         Feedback from the company:
+//         "${feedback}"
+
+//         We appreciate your time and encourage you to apply again in the future.
+
+//         Best regards,
+//         ${jobApplication.job.company.companyName}
+//         Irshad Platform Team
+//         `,
+//     });
+
+//   return {
+//     message: 'User application rejected and feedback email sent successfully',
+//   };
+// }
+async rejectTheUserAfterTheInterviewService(
+  userId: number, 
+  jobId: number, 
+  feedback: string
+) {
+  // التحقق من وجود الوظيفة
+  const job = await this.jobsRepository.findOne({
+    where: { id: jobId },
+    relations: ['company'],
+  });
+
+  if (!job) {
+    throw new NotFoundException(`Job with ID ${jobId} not found.`);
+  }
+
+  // التحقق من وجود التقديم للوظيفة المحددة
   const jobApplication = await this.jobApplyRepository.findOne({
     where: {
       user: { id: userId },
+      job: { id: jobId },
       application_status: ApplicationStatus.PENDING,
     },
     relations: ['user', 'job', 'job.company'],
   });
 
-  if (!jobApplication)
-    throw new NotFoundException('No pending application found for this user.');
+  if (!jobApplication) {
+    // الحصول على حالة التقديم الحالية لتقديم رسالة أفضل
+    const existingApplication = await this.jobApplyRepository.findOne({
+      where: {
+        user: { id: userId },
+        job: { id: jobId },
+      },
+    });
 
-  
+    if (existingApplication) {
+      throw new BadRequestException(
+        `User's application for job ${jobId} is already ${existingApplication.application_status}.`
+      );
+    } else {
+      throw new NotFoundException(
+        `User ${userId} has not applied for job ${jobId}.`
+      );
+    }
+  }
+
+  // تحديث حالة التقديم
   jobApplication.application_status = ApplicationStatus.REJECTED;
   jobApplication.rejectionFeedback = feedback;
 
   await this.jobApplyRepository.save(jobApplication);
 
+  // إرسال البريد الإلكتروني
   await this.mailService.sendEmail({
     email: jobApplication.user.email,
-    subject: 'Job Application Update',
+    subject: `Interview Result - ${jobApplication.job.title}`,
     message: `
-        Dear ${jobApplication.user.firstName} ${jobApplication.user.lastName},
+      Dear ${jobApplication.user.firstName} ${jobApplication.user.lastName},
 
-        Thank you for attending the interview for the position:
-        "${jobApplication.job.title}"
+      Thank you for taking the time to interview for the position:
+      "${jobApplication.job.title}" at ${jobApplication.job.company.companyName}
 
-        After careful consideration, we regret to inform you that you were not selected for this role.
+      After careful consideration, we regret to inform you that you were not selected for this role.
 
-        Feedback from the company:
-        "${feedback}"
+      Feedback from the interviewer:
+      "${feedback}"
 
-        We appreciate your time and encourage you to apply again in the future.
+      We appreciate your interest in our company and encourage you to apply for future positions that match your skills.
 
-        Best regards,
-        ${jobApplication.job.company.companyName}
-        Irshad Platform Team
-        `,
-    });
+      Best regards,
+      ${jobApplication.job.company.companyName}
+      Irshad Platform Team
+      ${jobApplication.job.company.email || ''}
+    `,
+  });
 
   return {
+    success: true,
     message: 'User application rejected and feedback email sent successfully',
+    data: {
+      applicationId: jobApplication.id,
+      userId: userId,
+      jobId: jobId,
+      jobTitle: jobApplication.job.title,
+      companyName: jobApplication.job.company.companyName,
+      feedback: feedback,
+      rejectedAt: new Date(),
+    },
   };
 }
-
 
   private generateToken(company: CompanyEntity, fingerprint: string) {
   return {
@@ -443,6 +531,43 @@ public async getApplicantsForJob(jobId: number, companyId: number) {
 }
 
 
+// public async getResumePath(jobId: number, userId: number, companyId: number) {
+//   // التحقق من وجود التقديم للوظيفة المحددة من قبل هذا المستخدم
+//   const jobApplication = await this.jobApplyRepository.findOne({
+//     where: {
+//       // user: { id: userId },
+//       job: { id: jobId },
+//       // application_status: ApplicationStatus.PENDING,
+//     },
+//     relations: ['job', 'job.company', 'resume'],
+//   });
+//   console.log(jobApplication);
+  
+//   if (!jobApplication) {
+//     throw new NotFoundException('Application not found');
+//   }
+
+//   // التحقق أن الشركة المالكة للوظيفة هي نفسها الشركة الحالية
+//   if (jobApplication.job.company.id !== companyId) {
+//     throw new NotFoundException('Not allowed to view this resume');
+//   }
+
+//   const resumePath = jobApplication.resume.file_path; 
+// // مثال: "C:/Users/LENOVO/Desktop/full project/Irshad/uploads/cv/1764865210310-681201610.pdf"
+
+// // نبحث عن كلمة "uploads" ونأخذ ما بعدها
+//   const index = resumePath.indexOf('uploads');
+//   if (index === -1) {
+//     throw new NotFoundException('Invalid resume path');
+//   }
+
+//   // نعيد المسار النسبي ابتداءً من uploads
+//   const publicPath = '/' + resumePath.substring(index).replace(/\\/g, '/');
+
+//   return  publicPath ;
+// }
+
+
 public async getResumePath(jobApplyId: number, companyId: number) {
   const application = await this.jobApplyRepository.findOne({
     where: { id: jobApplyId },
@@ -455,13 +580,19 @@ public async getResumePath(jobApplyId: number, companyId: number) {
     throw new NotFoundException('Not allowed to view this resume');
   }
 
-  const resumePath = application.resume.file_path;
-  const fullPath = path.resolve(resumePath);
+  const resumePath = application.resume.file_path; 
+// مثال: "C:/Users/LENOVO/Desktop/full project/Irshad/uploads/cv/1764865210310-681201610.pdf"
 
-  if (!fs.existsSync(fullPath)) {
-    throw new NotFoundException('Resume file not found');
+// نبحث عن كلمة "uploads" ونأخذ ما بعدها
+  const index = resumePath.indexOf('uploads');
+  if (index === -1) {
+    throw new NotFoundException('Invalid resume path');
   }
 
-  return fullPath;
+  // نعيد المسار النسبي ابتداءً من uploads
+  const publicPath = '/' + resumePath.substring(index).replace(/\\/g, '/');
+
+  return  publicPath ;
+  
 }
 }

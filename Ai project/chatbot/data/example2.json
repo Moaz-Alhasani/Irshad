@@ -1,0 +1,10 @@
+[
+  {
+    "question": "ما هي كل الوظائف المتاحة",
+    "answer": "SELECT title, company, location, description, salary_range FROM jobs;"
+  },
+  {
+    "question": "ماهي المهارات المتتطلبة للعمل ",
+    "answer": "SELECT skill_name FROM skills;"
+  }
+]

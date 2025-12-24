@@ -167,6 +167,11 @@ async getShuffledQuestions(
   ): Promise<JobDetailDto> {
     return this.jobsService.getJobDetails(id);
   } 
- 
+
+
+  @Get('featured')
+  async getFeaturedJobs() {
+    return await this.jobsService.getFeaturedJobs();
+  }
 }
 

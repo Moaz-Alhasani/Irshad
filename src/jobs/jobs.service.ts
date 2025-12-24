@@ -242,4 +242,18 @@ public async getjobsCount():Promise<number>{
   return await this.jobRepository.count();
 }
 
+
+public async getFeaturedJobs(): Promise<JobEntity[]> {
+  return this.jobRepository
+    .createQueryBuilder('job')
+    .leftJoin('job.applications', 'application') 
+    .leftJoinAndSelect('job.company', 'company')
+    .groupBy('job.id')
+    .addGroupBy('company.id')
+    .orderBy('COUNT(application.id)', 'DESC') 
+    .addOrderBy('job.createdAt', 'DESC')      
+    .addOrderBy('RANDOM()')                   
+    .limit(8)
+    .getMany();
+}
 }

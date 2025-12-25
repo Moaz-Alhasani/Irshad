@@ -222,7 +222,7 @@ export class AuthController {
   }
 
 
-    @Post('deletecompanybyadmin/:id')
+  @Post('deletecompanybyadmin/:id')
   @Roles(UserRole.ADMIN)
   @UseGuards(JwtAuthGuard,RolesGuard)
   async DeleteTheCompany(@Param('id',ParseIntPipe)compid:number){

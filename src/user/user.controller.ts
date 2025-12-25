@@ -237,7 +237,7 @@ export class AuthController {
   
 
   @Post('verify-email')
-  @UseGuards(JwtAuthGuard) 
+  @UseGuards(JwtAuthGuard)  
   async verifyOtpForEmail(
     @CurrentUser() currentUser: any,
     @Body('otp') otp: string, 

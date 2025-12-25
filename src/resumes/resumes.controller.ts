@@ -45,7 +45,7 @@ export class ResumesController {
 
   @Roles(UserRole.JOB_SEEKER)
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Put(':id')
+  @Put('/update')
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
@@ -62,11 +62,10 @@ export class ResumesController {
     }),
   )
   async updateCV(
-    @Param('id') id: number,
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: any,
   ) {
-    return this.resumesService.updateResume(id, file.path, user.id);
+    return this.resumesService.updateResumeByUserId( file.path, user.id);
   }
 
 

@@ -28,6 +28,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { ApplicationStatus, JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 
 interface FlaskSimilarityResponse {
@@ -51,7 +53,8 @@ export class AuthService {
     private readonly jobsService: JobsService,
     @InjectRepository(CompanyEntity) private companyRepository:Repository<CompanyEntity>,
     private MailService:MailService,
-    @InjectRepository(JobApplyEntity) private jobApplyRepository:Repository<JobApplyEntity>
+    @InjectRepository(JobApplyEntity) private jobApplyRepository:Repository<JobApplyEntity>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async register(registerDto: RegisterDto,imagePath: string | null,fingerprint:string) {
@@ -311,6 +314,16 @@ async AdminDeleteTheCompany(compid:number){
 
 
  async getRecommendedJobs(userId: number) {
+  const cacheKey = `recommended_jobs_user_  ${userId}`;
+  console.log('Cache Key:', cacheKey);
+  // 1️⃣ حاول قراءة البيانات من الكاش أولًا
+  const cachedJobs = await this.cacheManager.get<any[]>(cacheKey);
+  if (cachedJobs !== undefined && cachedJobs !== null) {
+    // إذا كان هناك بيانات حتى لو كانت [] يتم إرجاعها مباشرة
+    return cachedJobs;
+  }
+
+  // 2️⃣ جلب بيانات المستخدم
   const user = await this.userRepository.findOne({
     where: { id: userId },
     relations: ['resumes'],
@@ -322,24 +335,27 @@ async AdminDeleteTheCompany(compid:number){
 
   const resume = user.resumes[0];
 
-  const resumeSummary = resume.summary || "";
-  const resumeSkills = resume.extracted_skills || [];
-  const resumeEducation = resume.education || [];
-  const resumeExperience = resume.experience_years
-    ? [`Experience: ${resume.experience_years} years`]
-    : [];
+  // 3️⃣ تجهيز نص السيرة الذاتية للفلترة
+  const resumeText = [
+    ...new Set([
+      ...(resume.extracted_skills || []),
+      ...(resume.education || []),
+      resume.experience_years
+        ? `Experience: ${resume.experience_years} years`
+        : '',
+      resume.summary || '',
+    ]),
+  ].join(' ');
 
-const resumeText = [
-  ...new Set([
-    ...resumeSkills,
-    ...resumeEducation,
-    resumeExperience ? `Experience: ${resumeExperience} years` : "",
-    resumeSummary,
-  ]),
-].join(' ');
-
-
+  // 4️⃣ جلب كل الوظائف
   const allJobs = await this.jobsService.getAllJobs();
+
+  // 5️⃣ إذا لا توجد وظائف أصلًا، خزّن [] في الكاش لفترة قصيرة وأعد []
+  if (!allJobs || allJobs.length === 0) {
+    await this.cacheManager.set(cacheKey, [], 60 * 2); // TTL قصير
+    return [];
+  }
+
   const jobsPayload = allJobs.map(job => ({
     id: job.id,
     title: job.title,
@@ -349,24 +365,30 @@ const resumeText = [
     requiredExperience: job.requiredExperience || 0,
   }));
 
+  // 6️⃣ طلب الفلاسك لحساب التشابه
+  const flaskRes = await axios.post<{ jobId: number; score: number }[]>(
+    'http://localhost:5000/get-similarity',
+    {
+      resume_text: resumeText,
+      jobs: jobsPayload,
+    }
+  );
 
-const flaskRes = await axios.post<{ jobId: number; score: number }[]>(
-  'http://localhost:5000/get-similarity',
-  {
-    resume_text: resumeText,
-    resume_skills: resumeSkills,
-    resume_education: resumeEducation,
-    resume_experience: resumeExperience,
-    jobs: jobsPayload,
-  }
-); 
-
+  // 7️⃣ فرز الوظائف حسب التشابه وإزالة العناصر غير الموجودة
   const sortedJobs = flaskRes.data
     .sort((a, b) => b.score - a.score)
     .map(item => {
       const job = allJobs.find(j => j.id === item.jobId);
-      return { ...job, similarityScore: item.score };
-    });
+      return job ? { ...job, similarityScore: item.score } : null;
+    })
+    .filter(Boolean);
+
+  // 8️⃣ تخزين النتيجة في الكاش
+  await this.cacheManager.set(
+    cacheKey,
+    sortedJobs,
+    sortedJobs.length ? 60 * 10 : 60 * 3 // 10 دقائق إذا توجد وظائف، 3 دقائق إذا فارغة
+  );
 
   return sortedJobs;
 }

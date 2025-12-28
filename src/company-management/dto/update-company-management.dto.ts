@@ -5,16 +5,16 @@ import { IsBoolean, IsEmail, IsNotEmpty, IsOptional, IsString, MinLength } from 
 export class UpdateCompanyManagementDto extends PartialType(CreateCompanyManagementDto) {
 
 
-    @IsNotEmpty()
+    @IsOptional()
     @IsEmail()
     email: string;
     
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     @MinLength(6, { message: 'Password must be at least 6 characters long' })
     password: string;
       
-    @IsNotEmpty()
+    @IsOptional()
     @IsString()
     companyName: string;
     

@@ -125,7 +125,7 @@ export class AuthController {
   // refresh(@Body('refreshToken') refreshToken: string) {
   //   return this.authservice.refreshToken(refreshToken);
   // }
-
+  //
   @Post('refresh')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies['refreshToken'];
@@ -233,7 +233,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async JobsRecommendtion(@CurrentUser() currentUser: any){
       return this.authservice.getRecommendedJobs(currentUser.id);
-  }
+  } 
   
 
   @Post('verify-email')

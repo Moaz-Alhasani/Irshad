@@ -520,7 +520,7 @@ public async getApplicantsForJob(jobId: number, companyId: number) {
         company: { id: companyId },
       },
     },
-    relations: ['user', 'resume', 'job'],
+    relations: ['user', 'resume', 'job',"interviews"],
     order: {
       ranking_score: 'DESC',
     },
@@ -595,4 +595,30 @@ public async getResumePath(jobApplyId: number, companyId: number) {
   return  publicPath ;
   
 }
+
+
+  async getCompanyProfile(id: number): Promise<any> {
+    const company = await this.companyRepository.findOne({
+      where: { id },
+      select: [
+        'id',
+        'email',
+        'companyName',
+        'companyWebsite',
+        'companyLocation',
+        'companyLogo',
+        'isVerified',
+        'role',
+        'createdAt'
+      ]
+    });
+
+    if (!company) {
+      throw new NotFoundException('Company not found');
+    }
+
+    return company;
+  }
+
+
 }

@@ -24,6 +24,14 @@ export class UpdateUserInfo {
   profileImage?: string;
 
   @IsOptional()
+  @IsString()
+  birthDate ?: Date;
+
+  @IsOptional()
+  @IsString()
+  age?: number;
+
+  @IsOptional()
   @IsBoolean()
   @Type(() => Boolean)
   isActive?: boolean;

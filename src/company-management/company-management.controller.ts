@@ -56,6 +56,12 @@ export class CompanyManagementController {
 
     return { company, message: 'Registration successful' };
   }
+    
+  
+  @Get('profile/:id')
+  async getCompanyProfile(@Param('id', ParseIntPipe) id: number) {
+    return this.companyManagementService.getCompanyProfile(id);
+  }
 
   @Put('update/:id')
   @UseInterceptors(FileInterceptor('companyLogo', {
@@ -84,7 +90,7 @@ async LoginCompany(
     httpOnly: true,
     secure: true,
     sameSite: 'none',
-    maxAge: 1000 * 60 * 15,
+    maxAge: 1000 * 60 * 15 * 8,
   });
 
   res.cookie('refreshToken', refreshToken, {
@@ -219,5 +225,7 @@ async createCompanyByAdmin(
     { 
       const filePath = 
       await this.companyManagementService.getResumePath(jobId, currentUser.id); 
-      return { path: filePath }; }
+      return { path: filePath }; 
+    
+    }
 }

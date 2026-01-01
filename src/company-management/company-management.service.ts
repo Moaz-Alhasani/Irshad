@@ -15,7 +15,8 @@ import { ApplicationStatus, JobApplyEntity } from 'src/jobapply/entities/jobAppl
 import { generateFingerprint } from 'src/utils/fingerprint';
 import { Request } from 'express';
 import { MailService } from '../user/gobal/MailService';
-
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
 
 
 @Injectable()
@@ -37,6 +38,7 @@ export class CompanyManagementService {
     private readonly authService: AuthService,
     private readonly mailService: MailService,
     private readonly jwtService: JwtService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
   async RegisterAsCompany(
@@ -105,11 +107,23 @@ export class CompanyManagementService {
   };
 }
 
-  async getCompanyJobs(companyId: number) {
-    const company = await this.companyRepository.findOne({ where: { id: companyId }, relations: ['jobs'] });
-    if (!company) throw new NotFoundException('Company not found');
-    return company.jobs;
+async getCompanyJobs(companyId: number) {
+  const cacheKey = `company_jobs_${companyId}`;
+  const cachedJobs = await this.cacheManager.get<any[]>(cacheKey);
+  if (cachedJobs !== undefined && cachedJobs !== null) {
+    return cachedJobs;
   }
+  const company = await this.companyRepository.findOne({ 
+    where: { id: companyId }, 
+    relations: ['jobs'] 
+  });
+  if (!company) throw new NotFoundException('Company not found');
+  const jobs = company.jobs || [];
+  await this.cacheManager.set(cacheKey, jobs, jobs.length ? 60 * 10 : 60 * 3);
+
+  return jobs;
+}
+
 
   public async getNumberofCompanyJobs(company: any): Promise<number> {
     return await this.jobsRepository.count({ where: { company: { id: company.id } } });
@@ -197,7 +211,7 @@ async rejectTheUserAfterTheInterviewService(
   jobId: number, 
   feedback: string
 ) {
-  // التحقق من وجود الوظيفة
+
   const job = await this.jobsRepository.findOne({
     where: { id: jobId },
     relations: ['company'],
@@ -207,7 +221,7 @@ async rejectTheUserAfterTheInterviewService(
     throw new NotFoundException(`Job with ID ${jobId} not found.`);
   }
 
-  // التحقق من وجود التقديم للوظيفة المحددة
+
   const jobApplication = await this.jobApplyRepository.findOne({
     where: {
       user: { id: userId },
@@ -218,7 +232,7 @@ async rejectTheUserAfterTheInterviewService(
   });
 
   if (!jobApplication) {
-    // الحصول على حالة التقديم الحالية لتقديم رسالة أفضل
+
     const existingApplication = await this.jobApplyRepository.findOne({
       where: {
         user: { id: userId },
@@ -236,14 +250,12 @@ async rejectTheUserAfterTheInterviewService(
       );
     }
   }
-
-  // تحديث حالة التقديم
   jobApplication.application_status = ApplicationStatus.REJECTED;
   jobApplication.rejectionFeedback = feedback;
 
   await this.jobApplyRepository.save(jobApplication);
 
-  // إرسال البريد الإلكتروني
+
   await this.mailService.sendEmail({
     email: jobApplication.user.email,
     subject: `Interview Result - ${jobApplication.job.title}`,
@@ -359,7 +371,7 @@ public async getAllCompaniesWithStatus(
 
 
 public async getPendingCompaniesWithCount() {
-  // جلب الشركات المعلقة
+
   const companies = await this.companyRepository.find({
     where: { isVerified: false },
     select: [
@@ -373,10 +385,9 @@ public async getPendingCompaniesWithCount() {
     ],
   });
 
-  // عدّ الشركات المعلقة
   const pendingCount = companies.length;
 
-  // تحويل البيانات للفرونت
+
   const data = companies.map((company) => ({
     id: company.id,
     companyName: company.companyName,
@@ -581,15 +592,12 @@ public async getResumePath(jobApplyId: number, companyId: number) {
   }
 
   const resumePath = application.resume.file_path; 
-// مثال: "C:/Users/LENOVO/Desktop/full project/Irshad/uploads/cv/1764865210310-681201610.pdf"
 
-// نبحث عن كلمة "uploads" ونأخذ ما بعدها
   const index = resumePath.indexOf('uploads');
   if (index === -1) {
     throw new NotFoundException('Invalid resume path');
   }
 
-  // نعيد المسار النسبي ابتداءً من uploads
   const publicPath = '/' + resumePath.substring(index).replace(/\\/g, '/');
 
   return  publicPath ;

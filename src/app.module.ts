@@ -19,11 +19,19 @@ import { QuestionEntity } from './jobs/entities/question.entity';
 import { OptionEntity } from './jobs/entities/option.entity';
 import { JobTestAnswerEntity } from './jobapply/entities/jobTestAnswer.entity';
 import { JobExamAttempt } from './jobs/entities/job_exam_attempts_entity';
-
+import { CacheModule } from '@nestjs/cache-manager';
+import * as redisStore from 'cache-manager';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    CacheModule.register({
+      isGlobal: true,
+      store: redisStore,
+      host: 'localhost',
+      port: 6379,
+      ttl: 60 * 10, // 10 دقائق
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

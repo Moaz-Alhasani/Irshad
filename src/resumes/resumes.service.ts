@@ -6,6 +6,9 @@ import axios from 'axios';
 import { existsSync, unlinkSync } from 'fs';
 import { ResumeDto } from './dto/resume.dto';
 import { UserEntity } from 'src/user/entities/user.entity';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { Inject } from '@nestjs/common';
 
 interface ParserOutput {
   summary?: string;
@@ -36,7 +39,8 @@ export class ResumesService {
     @InjectRepository(ResumeEntity)
     private resumeRepo: Repository<ResumeEntity>,
     @InjectRepository(UserEntity)
-    private userEntity:Repository<UserEntity>
+    private userEntity:Repository<UserEntity>,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
 async sendToFlaskAndSave(filePath: string, userId: number) {
@@ -175,6 +179,7 @@ private parseExperience(experience: any): number {
     // إزالة الـ Resume القديم من قاعدة البيانات
     await this.resumeRepo.remove(resume);
     
+    await this.cacheManager.del(`recommended_jobs_user_${userId}`);
     // إنشاء Resume جديد باستخدام الملف الجديد
     return this.sendToFlaskAndSave(newFilePath, userId);
   }
@@ -186,6 +191,7 @@ private parseExperience(experience: any): number {
       unlinkSync(resume.file_path);
     }
     await this.resumeRepo.remove(resume);
+    await this.cacheManager.del(`recommended_jobs_user_${userId}`);
     return { success: true, message: 'Resume deleted successfully' };
   }
 

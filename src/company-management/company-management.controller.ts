@@ -120,7 +120,7 @@ async LoginCompany(
 
 
   @Get('company/:id')
-@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN) // يمكن تعديل الصلاحيات حسب الحاجة
+@Roles(UserRole.ADMIN, UserRole.SUPER_ADMIN) 
 @UseGuards(JwtAuthGuard, RolesGuard)
 async getCompany(@Param('id', ParseIntPipe) id: number) {
   return this.companyManagementService.getCompanyById(id);

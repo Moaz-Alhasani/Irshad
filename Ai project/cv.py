@@ -5,6 +5,7 @@ import pdfplumber
 from dotenv import load_dotenv
 from datetime import datetime
 import google.generativeai as genai 
+from docx import Document
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
@@ -13,10 +14,27 @@ genai.configure(api_key=api_key)
 
 
 
-def extract_text_from_pdf(path):
-    with pdfplumber.open(path) as pdf:
-        text = "\n".join(page.extract_text() or '' for page in pdf.pages)
-    return text.strip()
+
+
+def extract_text(file_path):
+    ext = os.path.splitext(file_path)[1].lower()
+
+    if ext == ".pdf":
+        with pdfplumber.open(file_path) as pdf:
+            return "\n".join(page.extract_text() or '' for page in pdf.pages)
+
+    elif ext == ".txt":
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            return f.read()
+
+    elif ext == ".docx":
+        doc = Document(file_path)
+        return "\n".join(p.text for p in doc.paragraphs)
+
+    else:
+        raise ValueError("Unsupported file type")
+    
+
 
 
 def extract_email(text):
@@ -105,7 +123,7 @@ Rules:
 
 def analyze_resume_with_gemini(file_path):
     print("Extracting text from PDF...")
-    resume_text = extract_text_from_pdf(file_path)
+    resume_text = extract_text(file_path)
     print(f" Extracted text length: {len(resume_text)}")
 
     print("Parsing with Gemini...")

@@ -11,7 +11,7 @@ import { LoginCompanyDto } from './dto/loginCompany.dto';
 import * as fs from 'fs';
 import * as path from 'path';
 import { JobEntity } from 'src/jobs/entities/job.entity';
-import { ApplicationStatus, JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
+import { ApplicationStatus, JobApplyEntity, TestStatus } from 'src/jobapply/entities/jobApplyEntitt';
 import { generateFingerprint } from 'src/utils/fingerprint';
 import { Request } from 'express';
 import { MailService } from '../user/gobal/MailService';
@@ -148,19 +148,25 @@ async getCompanyJobs(companyId: number) {
     };
   }
 
-  async acceptTheUseraftertheinterviewservice(userId: number) {
-    const jobApplication = await this.jobApplyRepository.findOne({
-      where: { user: { id: userId }, application_status: ApplicationStatus.PENDING },
-      relations: ['user', 'job', 'resume'],
-    });
+  async acceptTheUseraftertheinterviewservice(userId: number, jobId: number) {
+  const jobApplication = await this.jobApplyRepository.findOne({
+    where: {
+      user: { id: userId },
+      job: { id: jobId },
+      application_status: ApplicationStatus.PENDING,
+      test_status: TestStatus.COMPLETED,
+    },
+    relations: ['user', 'job', 'resume'],
+  });
 
-    if (!jobApplication) throw new NotFoundException('No pending application found for this user.');
+  if (!jobApplication) 
+    throw new NotFoundException('No pending application found for this user and job.');
 
-    jobApplication.application_status = ApplicationStatus.ACCEPTED;
-    await this.jobApplyRepository.save(jobApplication);
+  jobApplication.application_status = ApplicationStatus.ACCEPTED;
+  await this.jobApplyRepository.save(jobApplication);
 
-    return { message: 'User application accepted', application: jobApplication };
-  }
+  return { message: 'User application accepted', application: jobApplication };
+}
 
 // async rejectTheUseraftertheinterviewservice(userId: number,feedback: string,) {
 //   const jobApplication = await this.jobApplyRepository.findOne({

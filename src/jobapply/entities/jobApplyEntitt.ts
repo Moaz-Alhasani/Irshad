@@ -18,8 +18,12 @@ export enum ApplicationStatus {
     ACCEPTED = 'accepted',
     REJECTED = 'rejected',
     WITHDRAWN = 'withdrawn',
-    TEST_PENDING = 'test_pending', 
-    TEST_COMPLETED = 'test_completed',
+}
+export enum TestStatus {
+  NOT_STARTED = 'not_started',
+  IN_PROGRESS = 'in_progress',
+  COMPLETED = 'completed',
+  EXPIRED = 'expired',
 }
 
 @Entity({ name: 'job_apply' })
@@ -42,12 +46,20 @@ export class JobApplyEntity {
     @OneToMany(() => InterviewEntity, (interview) => interview.jobApplication)
     interviews: InterviewEntity[];
 
-    @Column({
-        type: 'enum',
-        enum: ApplicationStatus,
-        default: ApplicationStatus.PENDING,
-    })
-    application_status: ApplicationStatus;
+@Column({
+  type: 'enum',
+  enum: ApplicationStatus,
+  default: ApplicationStatus.PENDING,
+    nullable: true,
+})
+application_status: ApplicationStatus | null;
+
+@Column({
+  type: 'enum',
+  enum: TestStatus,
+  default: TestStatus.NOT_STARTED,
+})
+test_status: TestStatus;
 
     @Column({ type: 'int', nullable: true })
     estimated_salary: number;

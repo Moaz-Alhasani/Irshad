@@ -14,7 +14,7 @@ import { OptionEntity } from './entities/option.entity';
 import { JobResponseDto } from './dto/JobResponse.dto';
 import { JobDetailDto } from './dto/job-details.dto';
 import { JobExamAttempt } from './entities/job_exam_attempts_entity';
-import { ApplicationStatus, JobApplyEntity } from 'src/jobapply/entities/jobApplyEntitt';
+import { ApplicationStatus, JobApplyEntity, TestStatus } from 'src/jobapply/entities/jobApplyEntitt';
 
 interface FlaskEmbeddingResponse {
   embedding: number[];
@@ -86,10 +86,8 @@ async addQuestion(jobId: number, createQuestionDto: CreateQuestionDto) {
 
     return { message: 'Questions Added successfully' };
   }
-// في jobs.service.ts
-async getShuffledJobQuestions(jobId: number, userId: number) {
 
-  // 1️⃣ تحقق أنه متقدم على الوظيفة
+async getShuffledJobQuestions(jobId: number, userId: number) {
   const application = await this.jobApplyRepository.findOne({
     where: { job: { id: jobId }, user: { id: userId } },
   });
@@ -97,7 +95,6 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
   if (!application)
     throw new ForbiddenException('You must apply before taking the test');
 
-  // 2️⃣ تحقق أنه لم يبدأ الاختبار سابقًا
   const existingAttempt = await this.jobExamAttemptRepository.findOne({
     where: { user: { id: userId }, job: { id: jobId } },
   });
@@ -105,7 +102,6 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
   if (existingAttempt)
     throw new ForbiddenException('Test already started');
 
-  // 3️⃣ جلب الأسئلة
   const job = await this.jobRepository.findOne({
     where: { id: jobId },
     relations: ['questions', 'questions.options'],
@@ -114,12 +110,10 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
   if (!job)
     throw new NotFoundException('Job not found');
 
-  // ✅ مدة الاختبار بالدقائق مباشرة
-  const durationMinutes = job.questions[0]?.testDuration; // إذا لم يوجد مدة محددة نستخدم 5 دقائق
+  const durationMinutes = job.questions[0]?.testDuration; 
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + durationMinutes * 60 * 1000); // تحويل الدقائق إلى مللي ثانية
+  const expiresAt = new Date(now.getTime() + durationMinutes * 60 * 1000); 
 
-  // 5️⃣ إنشاء Attempt
   await this.jobExamAttemptRepository.save({
     user: { id: userId },
     job: { id: jobId },
@@ -127,7 +121,9 @@ async getShuffledJobQuestions(jobId: number, userId: number) {
     submitted: false,
   });
 
-  // 6️⃣ خلط الخيارات
+  application.test_status = TestStatus.IN_PROGRESS;
+  await this.jobApplyRepository.save(application);
+  
   const shuffleArray = <T>(array: T[]): T[] => {
     const arr = [...array];
     for (let i = arr.length - 1; i > 0; i--) {

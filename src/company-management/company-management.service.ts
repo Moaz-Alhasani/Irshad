@@ -157,6 +157,8 @@ async getCompanyJobs(companyId: number) {
     if (!jobApplication) throw new NotFoundException('No pending application found for this user.');
 
     jobApplication.application_status = ApplicationStatus.ACCEPTED;
+    console.log(ApplicationStatus.ACCEPTED);
+    
     await this.jobApplyRepository.save(jobApplication);
 
     return { message: 'User application accepted', application: jobApplication };

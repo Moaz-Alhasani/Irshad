@@ -133,12 +133,15 @@ async getCompany(@Param('id', ParseIntPipe) id: number) {
     return this.companyManagementService.numberofApplyForJobs(jobid, company);
   }
 
-  @Post('acceptuser/:userid')
-  @Roles(CompanyRole.COMPANY)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async acceptTheUseraftertheinterview(@Param('userid', ParseIntPipe) userid: number) {
-    return this.companyManagementService.acceptTheUseraftertheinterviewservice(userid);
-  }
+@Post('acceptuser/:userid/:jobid')
+@Roles(CompanyRole.COMPANY)
+@UseGuards(JwtAuthGuard, RolesGuard)
+async acceptTheUserAfterInterview(
+  @Param('userid', ParseIntPipe) userid: number,
+  @Param('jobid', ParseIntPipe) jobid: number
+) {
+  return this.companyManagementService.acceptTheUseraftertheinterviewservice(userid, jobid);
+}
 
 @Post(':jobId/rejectuser/:userid')
 @Roles(CompanyRole.COMPANY)

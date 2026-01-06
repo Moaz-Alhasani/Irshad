@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import axios from 'axios';
 import { JobEntity } from 'src/jobs/entities/job.entity';
-import { JobApplyEntity, ApplicationStatus } from './entities/jobApplyEntitt';
+import { JobApplyEntity, ApplicationStatus, TestStatus } from './entities/jobApplyEntitt';
 import { UserEntity } from 'src/user/entities/user.entity';
 import { CreateJobApplyDto } from './dto/createjobsdto';
 import { QuestionEntity } from 'src/jobs/entities/question.entity';
@@ -178,7 +178,7 @@ async submitJobTest(
   if (!application)
     throw new ForbiddenException('You have not applied');
 
-  // جلب Attempt
+
   const attempt = await this.JobExamAttempt.findOne({
     where: { user: { id: userId }, job: { id: jobId } },
   });
@@ -189,16 +189,15 @@ async submitJobTest(
   if (attempt.submitted)
     throw new ForbiddenException('Test already submitted');
 
-  // ⚡ تعديل هنا: إذا انتهى الوقت
+
   if (new Date() > attempt.expiresAt) {
-    // تحديث Attempt
+ 
     attempt.score = 0;
     attempt.submitted = true;
     await this.JobExamAttempt.save(attempt);
 
-    // تحديث حالة التقديم
     application.test_score = 0;
-    application.application_status = ApplicationStatus.TEST_COMPLETED;
+    application.test_status = TestStatus.EXPIRED;
     await this.jobApplyEntity.save(application);
 
     return {
@@ -208,7 +207,7 @@ async submitJobTest(
     };
   }
 
-  // إذا الوقت لم ينتهِ، نستمر بالحساب الطبيعي للنتيجة
+
   let score = 0;
   const testAnswers: JobTestAnswerEntity[] = [];
 
@@ -241,7 +240,7 @@ async submitJobTest(
   await this.jobApplyEntity.manager.save(testAnswers);
 
   application.test_score = score;
-  application.application_status = ApplicationStatus.TEST_COMPLETED;
+  application.test_status = TestStatus.COMPLETED;
   await this.jobApplyEntity.save(application);
 
   attempt.score = score;

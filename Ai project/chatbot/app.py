@@ -2,25 +2,32 @@ from flask import Flask, request, Response
 from flask_cors import CORS
 from google import genai
 import json, os
+from dotenv import load_dotenv
+
+
 app = Flask(__name__)
 CORS(app)
+load_dotenv()
 
-# ⚠️ يفضّل نقل المفتاح إلى Environment Variable
-client = genai.Client(api_key="AIzaSyA0wernW_WghGtvSWhaqkSkfD4LNqgmvRg")
+api_key = os.getenv("GEMINI_API_KEY_ChatBOT")
+if not api_key:
+    raise ValueError("GEMINI_API_KEY_ChatBOT not found in .env file")
 
-# ================== Load FAQ ==================
+client = genai.Client(api_key=api_key)
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_PATH = os.path.join(BASE_DIR, "data", "data.json")
 
 with open(DATA_PATH, "r", encoding="utf-8") as f:
     FAQ_DATA = json.load(f)
 
-# ================== Fake FAISS ==================
+
 class FakeFAISS:
     def __init__(self, data):
         self.data = data
 
-    def similarity_search(self, query, k=3):
+    def similarity_search(self, query, k=1):
         query_words = set(query.split())
         best_match = None
         max_score = 0
@@ -36,7 +43,7 @@ class FakeFAISS:
 
 vectorstore = FakeFAISS(FAQ_DATA)
 
-# ================== FAQ Match ==================
+
 def faq_intent_match(user_question: str):
     user_words = set(user_question.split())
     for item in FAQ_DATA:
@@ -44,62 +51,78 @@ def faq_intent_match(user_question: str):
             return item["answer"]
     return None
 
-# ================== Gemini ==================
-def generate_with_gemini(question, context=""):
+
+chat_history = {}  
+
+
+def generate_with_gemini(session_id, question, context=""):
+    history = chat_history.get(session_id, [])
+
+    history_text = ""
+    for h in history[-4:]:  
+        history_text += f"المستخدم: {h['user']}\n"
+        history_text += f"المساعد: {h['bot']}\n"
+
     prompt = f"""
 أنت "رشاد بوت"، المساعد الذكي لمنصة إرشاد.
+أجب باللغة العربية وبأسلوب واضح ومختصر.
 
-المعلومات:
+سجل المحادثة:
+{history_text}
+
+المعلومات المتاحة:
 {context}
 
-السؤال:
+سؤال المستخدم:
 {question}
 
 الإجابة:
 """
+
     try:
         response = client.models.generate_content(
             model="models/gemini-2.5-flash",
             contents=prompt
         )
 
-        # استخراج النص بشكل آمن
-        if (
-            response.candidates
-            and response.candidates[0].content
-            and response.candidates[0].content.parts
-        ):
-            return response.candidates[0].content.parts[0].text.strip()
+        answer = response.candidates[0].content.parts[0].text.strip()
 
-        return "لم أتمكن من توليد إجابة حالياً."
+        history.append({"user": question, "bot": answer})
+        chat_history[session_id] = history
+
+        return answer
 
     except Exception as e:
         print("Gemini Error:", e)
         return "حدث خطأ أثناء معالجة سؤالك."
 
-# ================== Generate Answer ==================
-def generate_answer(question: str):
+
+def generate_answer(session_id, question: str):
+
+
     faq = faq_intent_match(question)
     if faq:
-        return generate_with_gemini(question, faq)
+        return faq
+
 
     docs = vectorstore.similarity_search(question)
-    if docs:
-        return generate_with_gemini(question, docs[0]["answer"])
+    context = docs[0]["answer"] if docs else "لا توجد معلومات حالياً."
 
-    return generate_with_gemini(question, "لا توجد معلومات حالياً.")
 
-# ================== API Route ==================
+    return generate_with_gemini(session_id, question, context)
+
 @app.route("/get", methods=["POST"])
 def chat():
     msg = request.form.get("msg", "")
+    session_id = request.form.get("session_id", "default")
+
     if not msg:
         return Response("سؤال فارغ", mimetype="text/plain")
 
-    answer = generate_answer(msg)
-    print("BOT:", answer)  # للتأكد
+    answer = generate_answer(session_id, msg)
+    print(f"[{session_id}] BOT:", answer)
+
     return Response(answer, mimetype="text/plain")
 
-# ================== Run ==================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)

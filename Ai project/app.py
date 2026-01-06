@@ -34,24 +34,50 @@ def analyze():
         data = request.get_json(silent=True)
 
         if not data:
-            return jsonify({"error": "No JSON data provided"}), 400
-            
+            return jsonify({"analysis_status": "failed","message": "No input data provided"}), 400
         file_path = data.get("file_path")
-        print(f"Received file path: {file_path}")
-
         if not file_path:
-            return jsonify({"error": "file_path is required"}), 400
-
-        result = analyze_resume_with_gemini(file_path)
-        print(f"🔍 Analysis result: {result}")
+            return jsonify({"analysis_status": "failed","message": "CV file path is missing"}), 400
         
+        result = analyze_resume_with_gemini(file_path)
         parser_output = result.get("parser_output", {})
+        skills = parser_output.get("skills", [])
         education = parser_output.get("education", {})
+        experience_years = parser_output.get("experience_years", 0)
 
+        insights = []
+
+        if not skills:
+            insights.append({
+                "type": "missing_skills",
+                "title": "Skills not detected",
+                "description": "We could not identify any professional skills in your CV."
+            })
+        if not education or not any(education.values()):
+            insights.append({
+                "type": "missing_education",
+                "title": "Education information not detected",
+                "description": "Your educational background is unclear or missing."
+            })
+        if experience_years == 0:
+            insights.append({
+                "type": "missing_experience",
+                "title": "Work experience not detected",
+                "description": "We could not determine your work experience from the CV."
+            })
+        if insights:
+            return jsonify({
+                "analysis_status": "incomplete",
+                "message": "CV analysis detected missing information",
+                "insights": insights,
+                "advice": "We recommend updating your CV to include the missing information, then delete and re-upload the CV for a more accurate analysis."
+            }), 200
+        
         response = {
+            "analysis_status": "complete",
             "parser_output": {
                 "summary": parser_output.get("summary", ""),
-                "skills": parser_output.get("skills", []),
+                "skills": skills,
                 "education": {
                     "degree": education.get("degree", ""),
                     "university": education.get("university", ""),
@@ -60,19 +86,20 @@ def analyze():
                 "certifications": parser_output.get("certifications", []),
                 "languages": parser_output.get("languages", ["Arabic"]),
                 "location": parser_output.get("location", ""),
-                "experience_years": parser_output.get("experience_years", 0),
+                "experience_years": experience_years,
             },
             "email": result.get("email"),
             "phone": result.get("phone"),
             "estimated_experience_years": result.get("estimated_experience_years", 1)
         }
-        
-        print("Final response:", json.dumps(response, indent=2))
-        return jsonify(response)
-        
+        return jsonify(response), 200
     except Exception as e:
         print(f"Error in analyze route: {str(e)}")
-        return jsonify({"error": "Internal server error"}), 500
+        return jsonify({
+            "analysis_status": "failed",
+            "message": "Internal server error during CV analysis"
+        }), 500
+
     
 
 modelembe = SentenceTransformer(r'D:\multi-qa-mpnet-base-dot-v1')

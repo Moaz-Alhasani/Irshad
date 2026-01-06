@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
 import { ResumeEntity } from './entities/resume.entity';
@@ -102,14 +102,31 @@ async sendToFlaskAndSave(filePath: string, userId: number) {
     
     console.log('Saved Resume:', savedResume);
     return savedResume;
-  } catch (err: any) {
-    console.error('Error sending to Flask:', err.message);
-    if (err.response) {
-      console.error(' Flask response error:', err.response.data);
-    }
-    console.error('Full error:', err);
-    throw err;
+  }catch (err: any) {
+  console.error('Error sending to Flask:', err.message);
+
+  if (err.response) {
+    const status = err.response.status;
+    const data = err.response.data;
+
+    console.error(' Flask response error:', data);
+
+    throw new HttpException(
+      {
+        analysis_status: data.analysis_status || 'failed',
+        error_code: data.error_code || 'FLASK_ERROR',
+        message: data.message || 'Error returned from CV analyzer'
+      },
+      status
+    );
   }
+
+
+  throw new InternalServerErrorException(
+    'Internal server error while analyzing CV'
+  );
+}
+
 }
 
 private formatEducation(education: any): string[] {

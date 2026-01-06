@@ -6,14 +6,12 @@ from dotenv import load_dotenv
 from datetime import datetime
 import google.generativeai as genai 
 from docx import Document
+
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("GEMINI_API_KEY not found in .env file")
 genai.configure(api_key=api_key)
-
-
-
 
 
 def extract_text(file_path):
@@ -33,14 +31,10 @@ def extract_text(file_path):
 
     else:
         raise ValueError("Unsupported file type")
-    
-
-
 
 def extract_email(text):
     match = re.search(r"[\w\.-]+@[\w\.-]+\.\w+", text)
     return match.group(0) if match else None
-
 
 def extract_phone(text):
     match = re.search(r"(\+?\d{1,3})?[\s\-]?\(?\d{2,4}\)?[\s\-]?\d{3,5}[\s\-]?\d{3,5}", text)
@@ -56,7 +50,6 @@ def convert_to_date(date_str):
         except:
             return datetime.strptime("Jan " + date_str.strip(), "%b %Y")
 
-
 def estimate_experience_years(text):
     years = []
     matches = re.findall(
@@ -64,16 +57,33 @@ def estimate_experience_years(text):
         r'(\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)?\.?\s?\d{4}|Present)',
         text, re.IGNORECASE
     )
+
     for start, end in matches:
         try:
             start_date = convert_to_date(start)
-            end_date = convert_to_date(end) if "present" not in end.lower() else datetime.now()
+            end_date = datetime.now() if "present" in end.lower() else convert_to_date(end)
             diff_years = (end_date - start_date).days / 365
             if diff_years > 0:
                 years.append(diff_years)
         except:
             continue
-    return round(sum(years), 1) if years else 1
+
+    return round(sum(years), 1) if years else 0
+
+def is_likely_cv(text):
+    text_lower = text.lower()
+
+    cv_keywords = [
+        "experience", "education", "skills", "projects",
+        "work experience", "professional experience",
+        "certifications", "resume", "cv", "profile"
+    ]
+
+    keyword_score = sum(1 for k in cv_keywords if k in text_lower)
+    has_email = extract_email(text_lower) is not None
+    has_phone = extract_phone(text_lower) is not None
+
+    return keyword_score >= 2 and (has_email or has_phone)
 
 
 def analyze_with_gemini(text):
@@ -110,7 +120,6 @@ Rules:
     response = model.generate_content(prompt)
     raw_output = response.text.strip()
 
-
     match = re.search(r"\{[\s\S]*\}", raw_output)
     if match:
         raw_output = match.group(0)
@@ -121,25 +130,22 @@ Rules:
         print("Gemini output invalid JSON:\n", raw_output)
         return {}
 
+
 def analyze_resume_with_gemini(file_path):
-    print("Extracting text from PDF...")
+    print("Extracting text...")
     resume_text = extract_text(file_path)
-    print(f" Extracted text length: {len(resume_text)}")
+    if not is_likely_cv(resume_text):
+        return {
+            "error": "NOT_A_CV",
+            "message": "Uploaded file is not a valid CV"
+        }
 
     print("Parsing with Gemini...")
     parsed_json = analyze_with_gemini(resume_text) or {}
-    print(f"Gemini parsed data: {parsed_json}")
 
-    print("Extracting email and phone...")
     email = extract_email(resume_text)
     phone = extract_phone(resume_text)
-    print(f"Email: {email}, Phone: {phone}")
-
-    print("Estimating experience...")
     exp_years = estimate_experience_years(resume_text)
-    print(f"⏱Estimated experience: {exp_years} years")
-
-    print("Done.")
 
     return {
         "parser_output": {

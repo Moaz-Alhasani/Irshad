@@ -124,7 +124,8 @@ export class AuthController {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
-      maxAge: 1000 * 60 * 60 * 7 * 24, // 7 ساعات
+      expires:new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      maxAge: 1000 * 60 * 60 * 7 * 24 * 1000 * 9 * 9 * 10, // 7 ساعات
     });
 
     res.cookie('refreshToken', refreshToken, {

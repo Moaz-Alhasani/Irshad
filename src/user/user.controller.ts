@@ -86,29 +86,70 @@ export class AuthController {
     };
   }
 
+  // @Post('login')
+  // async login(@Body() loginDto: LoginDto,@Req() req : Request ,@Res({ passthrough: true }) res: Response) {
+  //   const fingerprint = generateFingerprint(req);
+  //   const { user, accessToken, refreshToken } = await this.authservice.login(loginDto,fingerprint);
+  //   res.cookie('accessToken', accessToken, {
+  //   httpOnly: true,  
+  //   secure: true,   
+  //   sameSite: 'none',
+  //   maxAge: 1000 * 60 * 60 *7, 
+  // }); 
+  // res.cookie('refreshToken', refreshToken, {
+  //   httpOnly: true,
+  //   secure: true,
+  //   sameSite: 'none',
+  //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 أيام
+  // });
+  //   return {
+  //     user,
+  //     accessToken, 
+  //     message: 'Login successful',
+  //   };
+  // }
+
   @Post('login')
-  async login(@Body() loginDto: LoginDto,@Req() req : Request ,@Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() loginDto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const fingerprint = generateFingerprint(req);
-    const { user, accessToken, refreshToken } = await this.authservice.login(loginDto,fingerprint);
+    
+    const { user, company, accessToken, refreshToken, type } = 
+      await this.authservice.login(loginDto, fingerprint);
+
     res.cookie('accessToken', accessToken, {
-    httpOnly: true,  
-    secure: true,   
-    sameSite: 'none',
-    maxAge: 1000 * 60 * 60 *7, 
-  }); 
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 أيام
-  });
-    return {
-      user,
-      accessToken, 
-      message: 'Login successful',
-    };
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 1000 * 60 * 60 * 7 * 24, // 7 ساعات
+    });
+
+    res.cookie('refreshToken', refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 أيام
+    });
+
+    if (type === 'user') {
+      return {
+        type:"user",
+        user,
+        message: 'User login successful',
+      };
+    } else {
+      return {
+        type:"company",
+        company,
+        message: 'Company login successful',
+      };
+    }
   }
 
+  
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   async logout(

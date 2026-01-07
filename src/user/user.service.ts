@@ -140,34 +140,93 @@ export class AuthService {
   }
 
 
-  async login(loginDto: LoginDto,fingerprint:string) {
-    const user = await this.userRepository.findOne({
-      where: { email: loginDto.email },
-    });
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+  // async login(loginDto: LoginDto,fingerprint:string) {
+  //   const user = await this.userRepository.findOne({
+  //     where: { email: loginDto.email },
+  //   });
+  //   if (!user) {
+  //     throw new UnauthorizedException('Invalid credentials');
+  //   }
+  //   const isPasswordValid = await this.verifyPassword(
+  //     loginDto.password,
+  //     user.password,
+  //   );
+  //   if (!isPasswordValid) {
+  //     throw new UnauthorizedException('Invalid credentials');
+  //   }
+  //   // if (!user.isActive){
+  //   //   throw new UnauthorizedException('Your account is deactivated. Please contact support.');
+  //   // }
+  //   // if (!user.isVerify){
+  //   //   throw new UnauthorizedException('Your account is deactivated. Please contact support.');
+  //   // }
+  //   const tokens = this.generateToken(user,fingerprint);
+  //   const { password, ...userWithoutPassword } = user;
+  //   return {
+  //     user: userWithoutPassword,
+  //     ...tokens,
+  //   };
+  // }
+
+  async login(loginDto: LoginDto, fingerprint: string) {
+  // أولاً: البحث في المستخدمين
+  const user = await this.userRepository.findOne({
+    where: { email: loginDto.email },
+  });
+
+  if (user) {
     const isPasswordValid = await this.verifyPassword(
       loginDto.password,
       user.password,
     );
+    
     if (!isPasswordValid) {
       throw new UnauthorizedException('Invalid credentials');
     }
-    // if (!user.isActive){
-    //   throw new UnauthorizedException('Your account is deactivated. Please contact support.');
-    // }
-    // if (!user.isVerify){
-    //   throw new UnauthorizedException('Your account is deactivated. Please contact support.');
-    // }
-    const tokens = this.generateToken(user,fingerprint);
+
+    const tokens = this.generateToken(user, fingerprint);
     const { password, ...userWithoutPassword } = user;
+    
     return {
       user: userWithoutPassword,
-      ...tokens,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      type: 'user',
     };
   }
-  
+
+  // إذا لم يكن مستخدم، البحث في الشركات
+  const company = await this.companyRepository.findOne({
+    where: { email: loginDto.email },
+  });
+
+  if (company) {
+    const isPasswordValid = await this.verifyPassword(
+      loginDto.password,
+      company.password,
+    );
+    
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const tokens = this.generateToken(company, fingerprint);
+    const { password, ...companyWithoutPassword } = company;
+    
+    return {
+      company: companyWithoutPassword,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+      type: 'company',
+    };
+  }
+
+  // إذا لم يتم العثور على أي منهما
+  throw new UnauthorizedException('Invalid credentials');
+}
+
+
+
   async refreshToken(refreshToken: string,fingerprint:string) {
     try {
       const payload = this.jwtService.verify(refreshToken, {
@@ -429,7 +488,7 @@ async undisable(userId: number) {
   }
 
 
-  private generateToken(user: UserEntity,fingerprint:string) {
+  private generateToken(user: any,fingerprint:string) {
     return {
       accessToken: this.generateAccessToken(user,fingerprint),
       refreshToken: this.generateRefreshToken(user,fingerprint),

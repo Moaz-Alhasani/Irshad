@@ -90,7 +90,7 @@ async LoginCompany(
     httpOnly: true,
     secure: true,
     sameSite: 'none',
-    maxAge: 1000 * 60 * 15 * 8,
+    maxAge: 1000 * 60 * 15 * 8 * 100,
   });
 
   res.cookie('refreshToken', refreshToken, {

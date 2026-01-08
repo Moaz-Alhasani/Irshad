@@ -1,4 +1,4 @@
-import { ForbiddenException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, HttpException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, Repository } from 'typeorm';
 import { ResumeEntity } from './entities/resume.entity';
@@ -159,47 +159,44 @@ private parseExperience(experience: any): number {
 
 
 
-  //  async updateResume(id: number, newFilePath: string, userId: number) {
-  //   const resume = await this.resumeRepo.findOne({ where: { id }, relations: ['user'] });
-  //   if (!resume) throw new NotFoundException('Resume not found');
-  //   if (resume.user.id !== userId) throw new ForbiddenException('Not your resume');
-  //   if (existsSync(resume.file_path)) {
-  //     unlinkSync(resume.file_path);
-  //   }
-  //   await this.resumeRepo.remove(resume);
-  //   return this.sendToFlaskAndSave(newFilePath, userId);
-  // }
+async updateResumeByUserId(newFilePath: string, userId: number) {
 
-  // resumes.service.ts
+  const oldResume = await this.resumeRepo.findOne({
+    where: { user: { id: userId } },
+    relations: ['user'],
+  });
 
-  async updateResumeByUserId(newFilePath: string, userId: number) {
-    // البحث عن الـ Resume باستخدام userId فقط
-    const resume = await this.resumeRepo.findOne({ 
-      where: { user: { id: userId } }, 
-      relations: ['user'] 
-    });
-    
-    if (!resume) {
-      throw new NotFoundException('Resume not found for this user');
-    }
-    
-    // تحقق من الملكية (في هذه الحالة تأكد أن الـ Resume للمستخدم)
-    if (resume.user.id !== userId) {
-      throw new ForbiddenException('Not your resume');
-    }
-    
-    // حذف الملف القديم
-    if (existsSync(resume.file_path)) {
-      unlinkSync(resume.file_path);
-    }
-    
-    // إزالة الـ Resume القديم من قاعدة البيانات
-    await this.resumeRepo.remove(resume);
-    
-    await this.cacheManager.del(`recommended_jobs_user_${userId}`);
-    // إنشاء Resume جديد باستخدام الملف الجديد
-    return this.sendToFlaskAndSave(newFilePath, userId);
+  if (!oldResume) {
+    throw new NotFoundException('Resume not found for this user');
   }
+
+  await this.resumeRepo.remove(oldResume);
+
+  let newResume;
+
+  try {
+    newResume = await this.sendToFlaskAndSave(newFilePath, userId);
+  } catch (error) {
+
+    await this.resumeRepo.save(oldResume);
+
+    if (existsSync(newFilePath)) {
+      unlinkSync(newFilePath);
+    }
+
+    throw new BadRequestException(
+      'Uploaded CV is not valid and was rejected by AI',
+    );
+  }
+  if (existsSync(oldResume.file_path)) {
+    unlinkSync(oldResume.file_path);
+  }
+
+  await this.cacheManager.del(`recommended_jobs_user_${userId}`);
+
+  return newResume;
+}
+
   async deleteResume(id: number, userId: number) {
     const resume = await this.resumeRepo.findOne({ where: { id }, relations: ['user'] });
     if (!resume) throw new NotFoundException('Resume not found');

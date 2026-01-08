@@ -63,10 +63,10 @@ export class ResumesController {
 
 
 
-  @Roles(UserRole.JOB_SEEKER)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Put('/update')
-  @UseInterceptors(
+@Roles(UserRole.JOB_SEEKER)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Put('/update')
+@UseInterceptors(
   FileInterceptor('file', {
     storage: diskStorage({
       destination: (req, file, cb) => {
@@ -82,31 +82,26 @@ export class ResumesController {
         cb(null, uniqueSuffix + extname(file.originalname));
       },
     }),
-
     fileFilter: (req, file, cb) => {
       const allowedMimeTypes = [
         'application/pdf',
         'text/plain',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       ];
-
       if (!allowedMimeTypes.includes(file.mimetype)) {
-        return cb(
-          new Error('Only PDF, TXT, and DOCX files are allowed'),
-          false,
-        );
+        return cb(new Error('Only PDF, TXT, and DOCX files are allowed'), false);
       }
-
       cb(null, true);
     },
   }),
 )
-  async updateCV(
-    @UploadedFile() file: Express.Multer.File,
-    @CurrentUser() user: any,
-  ) {
-    return this.resumesService.updateResumeByUserId( file.path, user.id);
-  }
+async updateCV(
+  @UploadedFile() file: Express.Multer.File,
+  @CurrentUser() user: any,
+) {
+  return this.resumesService.updateResumeByUserId(file.path, user.id);
+}
+
 
 
   @Roles(UserRole.JOB_SEEKER)

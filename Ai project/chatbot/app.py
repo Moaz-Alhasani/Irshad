@@ -23,7 +23,7 @@ with open(DATA_PATH, "r", encoding="utf-8") as f:
     FAQ_DATA = json.load(f)
 
 
-class FakeFAISS:
+class FAISSIndex:
     def __init__(self, data):
         self.data = data
 
@@ -41,7 +41,7 @@ class FakeFAISS:
 
         return [best_match] if best_match and max_score > 0 else []
 
-vectorstore = FakeFAISS(FAQ_DATA)
+vectorstore = FAISSIndex(FAQ_DATA)
 
 
 def faq_intent_match(user_question: str):

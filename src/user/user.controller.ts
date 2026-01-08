@@ -122,10 +122,11 @@ export class AuthController {
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: true,
+      secure: false,
       sameSite: 'none',
-      expires:new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      maxAge: 1000 * 60 * 60 * 7 * 24 * 1000 * 9 * 9 * 10, // 7 ساعات
+      maxAge: 10 * 365 * 24 * 60 * 60 * 1000 // عشر سنوات
+      // expires:new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      // maxAge: 1000 * 60 * 60 * 7 * 24 * 1000 * 9 * 9 * 10, // 7 ساعات
     });
 
     res.cookie('refreshToken', refreshToken, {

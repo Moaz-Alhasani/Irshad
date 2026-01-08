@@ -1,8 +1,8 @@
 from sentence_transformers import SentenceTransformer
 import numpy as np
 
-model = SentenceTransformer(r'D:\multi-qa-mpnet-base-dot-v1')
-# model = SentenceTransformer(r'F:\model\multi-qa-mpnet-base-dot-v1')
+# model = SentenceTransformer(r'D:\multi-qa-mpnet-base-dot-v1')
+model = SentenceTransformer(r'F:\model\multi-qa-mpnet-base-dot-v1')
 
 def compute_embedding(texts):
 

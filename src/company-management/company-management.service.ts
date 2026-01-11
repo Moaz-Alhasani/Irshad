@@ -168,50 +168,6 @@ async getCompanyJobs(companyId: number) {
   return { message: 'User application accepted', application: jobApplication };
 }
 
-// async rejectTheUseraftertheinterviewservice(userId: number,feedback: string,) {
-//   const jobApplication = await this.jobApplyRepository.findOne({
-//     where: {
-//       user: { id: userId },
-//       application_status: ApplicationStatus.PENDING,
-//     },
-//     relations: ['user', 'job', 'job.company'],
-//   });
-
-//   if (!jobApplication)
-//     throw new NotFoundException('No pending application found for this user.');
-
-  
-//   jobApplication.application_status = ApplicationStatus.REJECTED;
-//   jobApplication.rejectionFeedback = feedback;
-
-//   await this.jobApplyRepository.save(jobApplication);
-
-//   await this.mailService.sendEmail({
-//     email: jobApplication.user.email,
-//     subject: 'Job Application Update',
-//     message: `
-//         Dear ${jobApplication.user.firstName} ${jobApplication.user.lastName},
-
-//         Thank you for attending the interview for the position:
-//         "${jobApplication.job.title}"
-
-//         After careful consideration, we regret to inform you that you were not selected for this role.
-
-//         Feedback from the company:
-//         "${feedback}"
-
-//         We appreciate your time and encourage you to apply again in the future.
-
-//         Best regards,
-//         ${jobApplication.job.company.companyName}
-//         Irshad Platform Team
-//         `,
-//     });
-
-//   return {
-//     message: 'User application rejected and feedback email sent successfully',
-//   };
-// }
 async rejectTheUserAfterTheInterviewService(
   userId: number, 
   jobId: number, 
@@ -546,44 +502,6 @@ public async getApplicantsForJob(jobId: number, companyId: number) {
   return Appicats
   
 }
-
-
-// public async getResumePath(jobId: number, userId: number, companyId: number) {
-//   // التحقق من وجود التقديم للوظيفة المحددة من قبل هذا المستخدم
-//   const jobApplication = await this.jobApplyRepository.findOne({
-//     where: {
-//       // user: { id: userId },
-//       job: { id: jobId },
-//       // application_status: ApplicationStatus.PENDING,
-//     },
-//     relations: ['job', 'job.company', 'resume'],
-//   });
-//   console.log(jobApplication);
-  
-//   if (!jobApplication) {
-//     throw new NotFoundException('Application not found');
-//   }
-
-//   // التحقق أن الشركة المالكة للوظيفة هي نفسها الشركة الحالية
-//   if (jobApplication.job.company.id !== companyId) {
-//     throw new NotFoundException('Not allowed to view this resume');
-//   }
-
-//   const resumePath = jobApplication.resume.file_path; 
-// // مثال: "C:/Users/LENOVO/Desktop/full project/Irshad/uploads/cv/1764865210310-681201610.pdf"
-
-// // نبحث عن كلمة "uploads" ونأخذ ما بعدها
-//   const index = resumePath.indexOf('uploads');
-//   if (index === -1) {
-//     throw new NotFoundException('Invalid resume path');
-//   }
-
-//   // نعيد المسار النسبي ابتداءً من uploads
-//   const publicPath = '/' + resumePath.substring(index).replace(/\\/g, '/');
-
-//   return  publicPath ;
-// }
-
 
 public async getResumePath(jobApplyId: number, companyId: number) {
   const application = await this.jobApplyRepository.findOne({

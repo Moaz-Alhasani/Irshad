@@ -139,35 +139,6 @@ export class AuthService {
     };
   }
 
-
-  // async login(loginDto: LoginDto,fingerprint:string) {
-  //   const user = await this.userRepository.findOne({
-  //     where: { email: loginDto.email },
-  //   });
-  //   if (!user) {
-  //     throw new UnauthorizedException('Invalid credentials');
-  //   }
-  //   const isPasswordValid = await this.verifyPassword(
-  //     loginDto.password,
-  //     user.password,
-  //   );
-  //   if (!isPasswordValid) {
-  //     throw new UnauthorizedException('Invalid credentials');
-  //   }
-  //   // if (!user.isActive){
-  //   //   throw new UnauthorizedException('Your account is deactivated. Please contact support.');
-  //   // }
-  //   // if (!user.isVerify){
-  //   //   throw new UnauthorizedException('Your account is deactivated. Please contact support.');
-  //   // }
-  //   const tokens = this.generateToken(user,fingerprint);
-  //   const { password, ...userWithoutPassword } = user;
-  //   return {
-  //     user: userWithoutPassword,
-  //     ...tokens,
-  //   };
-  // }
-
   async login(loginDto: LoginDto, fingerprint: string) {
   // أولاً: البحث في المستخدمين
   const user = await this.userRepository.findOne({
@@ -506,7 +477,7 @@ async undisable(userId: number) {
     }; 
     return this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET || 'jwt_secret',
-      expiresIn: '15m',
+      expiresIn: '1d',
     });
   } 
 

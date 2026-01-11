@@ -166,33 +166,8 @@ async updateResumeByUserId(newFilePath: string, userId: number) {
     relations: ['user'],
   });
 
-<<<<<<< Updated upstream
   if (!oldResume) {
     throw new NotFoundException('Resume not found for this user');
-=======
-  async updateResumeByUserId(newFilePath: string, userId: number) {
-   
-    const resume = await this.resumeRepo.findOne({ 
-      where: { user: { id: userId } }, 
-      relations: ['user'] 
-    });
-    
-    if (!resume) {
-      throw new NotFoundException('Resume not found for this user');
-    }
-    
-    if (resume.user.id !== userId) {
-      throw new ForbiddenException('Not your resume');
-    }
-    if (existsSync(resume.file_path)) {
-      unlinkSync(resume.file_path);
-    }
-    await this.resumeRepo.remove(resume);
-    
-    await this.cacheManager.del(`recommended_jobs_user_${userId}`);
-  
-    return this.sendToFlaskAndSave(newFilePath, userId);
->>>>>>> Stashed changes
   }
 
   await this.resumeRepo.remove(oldResume);

@@ -54,7 +54,6 @@ export class ResumesController {
     },
   }),
 )
-
   async uploadCV(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: any,
@@ -83,7 +82,6 @@ export class ResumesController {
         cb(null, uniqueSuffix + extname(file.originalname));
       },
     }),
-<<<<<<< Updated upstream
     fileFilter: (req, file, cb) => {
       const allowedMimeTypes = [
         'application/pdf',
@@ -104,16 +102,6 @@ async updateCV(
   return this.resumesService.updateResumeByUserId(file.path, user.id);
 }
 
-=======
-  )
-  
-  async updateCV(
-    @UploadedFile() file: Express.Multer.File,
-    @CurrentUser() user: any,
-  ) {
-    return this.resumesService.updateResumeByUserId( file.path, user.id);
-  }
->>>>>>> Stashed changes
 
 
   @Roles(UserRole.JOB_SEEKER)

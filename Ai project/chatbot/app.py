@@ -23,11 +23,7 @@ with open(DATA_PATH, "r", encoding="utf-8") as f:
     FAQ_DATA = json.load(f)
 
 
-<<<<<<< Updated upstream
 class FAISSIndex:
-=======
-class FAISSINDEX:
->>>>>>> Stashed changes
     def __init__(self, data):
         self.data = data
 
@@ -45,11 +41,7 @@ class FAISSINDEX:
 
         return [best_match] if best_match and max_score > 0 else []
 
-<<<<<<< Updated upstream
 vectorstore = FAISSIndex(FAQ_DATA)
-=======
-vectorstore = FAISSINDEX(FAQ_DATA)
->>>>>>> Stashed changes
 
 
 def faq_intent_match(user_question: str):

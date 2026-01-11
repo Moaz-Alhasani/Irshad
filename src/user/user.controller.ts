@@ -123,10 +123,8 @@ export class AuthController {
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
       secure: false,
-      sameSite: 'none',
-      maxAge: 10 * 365 * 24 * 60 * 60 * 1000 // عشر سنوات
-      // expires:new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      // maxAge: 1000 * 60 * 60 * 7 * 24 * 1000 * 9 * 9 * 10, // 7 ساعات
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 60 * 1000 //15h
     });
 
     res.cookie('refreshToken', refreshToken, {
@@ -191,8 +189,8 @@ export class AuthController {
   }
 
   @Post('createAdmin')
-  @Roles(UserRole.ADMIN)
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles(UserRole.ADMIN)
+  // @UseGuards(JwtAuthGuard, RolesGuard)
   createAdmin(@Body() registerDto: RegisterDto , @Req() req : Request) {
     const fingerprint = generateFingerprint(req);
     return this.authservice.createAdmin(registerDto,fingerprint);

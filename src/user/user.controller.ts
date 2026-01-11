@@ -164,11 +164,7 @@ export class AuthController {
     return { message: `Logout successful for user ${user.email}` };
   }
 
-  // @Post('refresh')
-  // refresh(@Body('refreshToken') refreshToken: string) {
-  //   return this.authservice.refreshToken(refreshToken);
-  // }
-  //
+ 
   @Post('refresh')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies['refreshToken'];

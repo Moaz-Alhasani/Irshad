@@ -122,8 +122,8 @@ export class AuthController {
 
     res.cookie('accessToken', accessToken, {
       httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
+      secure: true,
+      sameSite: 'none',
       maxAge: 15 * 60 * 60 * 1000 //15h
     });
 
@@ -162,7 +162,6 @@ export class AuthController {
     return { message: `Logout successful for user ${user.email}` };
   }
 
- 
   @Post('refresh')
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const refreshToken = req.cookies['refreshToken'];

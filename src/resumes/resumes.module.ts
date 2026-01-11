@@ -10,11 +10,10 @@ import { forwardRef } from '@nestjs/common';
 import { CompanyEntity } from 'src/company-management/entities/company-management.entity';
 
 @Module({
-imports: [
-  TypeOrmModule.forFeature([ResumeEntity,UserEntity,JobApplyEntity,CompanyEntity]),
-  forwardRef(() => AuthModule),
-
-],
+  imports: [
+    TypeOrmModule.forFeature([ResumeEntity,UserEntity,JobApplyEntity,CompanyEntity]),
+    forwardRef(() => AuthModule),
+  ],
   controllers: [ResumesController],
   providers: [ResumesService],
   exports: [ResumesService], 

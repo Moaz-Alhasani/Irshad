@@ -381,14 +381,14 @@ async AdminDeleteTheCompany(compid:number){
  async getRecommendedJobs(userId: number) {
   const cacheKey = `recommended_jobs_user_  ${userId}`;
   console.log('Cache Key:', cacheKey);
-  // 1️⃣ حاول قراءة البيانات من الكاش أولًا
+  
   const cachedJobs = await this.cacheManager.get<any[]>(cacheKey);
   if (cachedJobs !== undefined && cachedJobs !== null) {
-    // إذا كان هناك بيانات حتى لو كانت [] يتم إرجاعها مباشرة
+    
     return cachedJobs;
   }
 
-  // 2️⃣ جلب بيانات المستخدم
+  
   const user = await this.userRepository.findOne({
     where: { id: userId },
     relations: ['resumes'],
@@ -400,7 +400,7 @@ async AdminDeleteTheCompany(compid:number){
 
   const resume = user.resumes[0];
 
-  // 3️⃣ تجهيز نص السيرة الذاتية للفلترة
+  
   const resumeText = [
     ...new Set([
       ...(resume.extracted_skills || []),
@@ -412,12 +412,12 @@ async AdminDeleteTheCompany(compid:number){
     ]),
   ].join(' ');
 
-  // 4️⃣ جلب كل الوظائف
+  
   const allJobs = await this.jobsService.getAllJobs();
 
-  // 5️⃣ إذا لا توجد وظائف أصلًا، خزّن [] في الكاش لفترة قصيرة وأعد []
+ 
   if (!allJobs || allJobs.length === 0) {
-    await this.cacheManager.set(cacheKey, [], 60 * 2); // TTL قصير
+    await this.cacheManager.set(cacheKey, [], 60 * 2);
     return [];
   }
 
@@ -429,8 +429,6 @@ async AdminDeleteTheCompany(compid:number){
     requiredEducation: job.requiredEducation || [],
     requiredExperience: job.requiredExperience || 0,
   }));
-
-  // 6️⃣ طلب الفلاسك لحساب التشابه
   const flaskRes = await axios.post<{ jobId: number; score: number }[]>(
     'http://localhost:5000/get-similarity',
     {
@@ -439,7 +437,6 @@ async AdminDeleteTheCompany(compid:number){
     }
   );
 
-  // 7️⃣ فرز الوظائف حسب التشابه وإزالة العناصر غير الموجودة
   const sortedJobs = flaskRes.data
     .sort((a, b) => b.score - a.score)
     .map(item => {
@@ -448,11 +445,10 @@ async AdminDeleteTheCompany(compid:number){
     })
     .filter(Boolean);
 
-  // 8️⃣ تخزين النتيجة في الكاش
   await this.cacheManager.set(
     cacheKey,
     sortedJobs,
-    sortedJobs.length ? 60 * 10 : 60 * 3 // 10 دقائق إذا توجد وظائف، 3 دقائق إذا فارغة
+    sortedJobs.length ? 60 * 10 : 60 * 3 
   );
 
   return sortedJobs;

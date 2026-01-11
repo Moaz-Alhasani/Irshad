@@ -179,7 +179,7 @@ def get_similarity():
     results = []
     for jid, base_s, text_s in zip(job_ids, [j['base_score'] for j in top_jobs], text_scores):
         final_score = 0.5 * base_s + 0.5 * text_s
-        results.append({
+        results.append({    
             "jobId": jid,
             "final_score": float(final_score)
         })

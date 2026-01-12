@@ -24,8 +24,9 @@ job_importance = joblib.load(os.path.join(MODEL_DIR,'job_importance.pkl'))
 scaler_X = joblib.load(os.path.join(MODEL_DIR, 'scaler_X.pkl'))
 scaler_y = joblib.load(os.path.join(MODEL_DIR, 'scaler_y.pkl'))
 # embedder = SentenceTransformer(r'D:\all-mpnet-base-v2')
-embedder = SentenceTransformer(r'F:\model\all-mpnet-base-v2')
+# embedder = SentenceTransformer(r'F:\model\all-mpnet-base-v2')
 
+embedder = SentenceTransformer("all-mpnet-base-v2")
 
 
 @app.route("/analyze", methods=["POST"])
@@ -105,8 +106,8 @@ def analyze():
     
 
 # modelembe = SentenceTransformer(r'D:\multi-qa-mpnet-base-dot-v1')
-modelembe = SentenceTransformer(r'F:\model\multi-qa-mpnet-base-dot-v1')
-
+# modelembe = SentenceTransformer(r'F:\model\multi-qa-mpnet-base-dot-v1')
+modelembe = SentenceTransformer("multi-qa-mpnet-base-dot-v1")
 
 @app.route("/get-similarity", methods=["POST"])
 def get_similarity():
@@ -372,4 +373,5 @@ def predict_acceptance():
     })
 
 if __name__ == "__main__":
-    app.run(port=5000, debug=False, use_reloader=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)

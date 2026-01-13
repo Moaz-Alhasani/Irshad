@@ -37,13 +37,33 @@ import * as redisStore from 'cache-manager';
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
-        host: configService.get<string>('DB_HOST'),
-        port: Number(configService.get<number>('DB_PORT')),
-        username: configService.get<string>('DB_USER'),
-        password: configService.get<string>('DB_PASSWORD'), 
-        database: configService.get<string>('DB_NAME'),
-        entities: [UserEntity,CompanyEntity,JobEntity,ResumeEntity,JobApplyEntity,InterviewEntity,QuestionEntity,JobTestAnswerEntity,OptionEntity,JobExamAttempt],
-        synchronize: true,
+        url: configService.get<string>('DATABASE_URL'),
+        // host: configService.get<string>('DB_HOST'),
+        // port: Number(configService.get<number>('DB_PORT')),
+        // username: configService.get<string>('DB_USER'),
+        // password: configService.get<string>('DB_PASSWORD'),
+        // database: configService.get<string>('DB_NAME'),
+        entities: [
+          UserEntity,
+          CompanyEntity,
+          JobEntity,
+          ResumeEntity,
+          JobApplyEntity,
+          InterviewEntity,
+          QuestionEntity,
+          JobTestAnswerEntity,
+          OptionEntity,
+          JobExamAttempt,
+        ],
+        synchronize: false,
+        ssl: {
+          rejectUnauthorized: false,
+        },
+        extra: {
+          ssl: true,
+          connectionTimeoutMillis: 15000,
+          idleTimeoutMillis: 30000,
+        },
       }),
     }),
     AuthModule,
@@ -57,4 +77,3 @@ import * as redisStore from 'cache-manager';
   providers: [AppService],
 })
 export class AppModule {}
-

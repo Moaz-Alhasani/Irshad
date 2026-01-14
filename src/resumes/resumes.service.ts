@@ -243,7 +243,7 @@ export class ResumesService {
           headers: {
             ...formData.getHeaders(), // ضروري جداً لتعريف نوع المحتوى والـ Boundary
           },
-          timeout: 90000, // زيادة الوقت لـ 90 ثانية لأن الـ AI قد يستغرق وقتاً
+          timeout:140000, // زيادة الوقت لـ 90 ثانية لأن الـ AI قد يستغرق وقتاً
         }
       );
 

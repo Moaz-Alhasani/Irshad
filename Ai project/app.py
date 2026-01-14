@@ -26,7 +26,8 @@ scaler_y = joblib.load(os.path.join(MODEL_DIR, 'scaler_y.pkl'))
 # embedder = SentenceTransformer(r'D:\all-mpnet-base-v2')
 # embedder = SentenceTransformer(r'F:\model\all-mpnet-base-v2')
 
-embedder = SentenceTransformer("all-mpnet-base-v2")
+embedder = SentenceTransformer("all-MiniLM-L6-v2")
+
 
 
 @app.route("/analyze", methods=["POST"])
@@ -107,7 +108,7 @@ def analyze():
 
 # modelembe = SentenceTransformer(r'D:\multi-qa-mpnet-base-dot-v1')
 # modelembe = SentenceTransformer(r'F:\model\multi-qa-mpnet-base-dot-v1')
-modelembe = SentenceTransformer("multi-qa-mpnet-base-dot-v1")
+modelembe = SentenceTransformer("multi-qa-MiniLM-L6-dot-v1")
 
 @app.route("/get-similarity", methods=["POST"])
 def get_similarity():

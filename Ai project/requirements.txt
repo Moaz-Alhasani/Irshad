@@ -11,7 +11,7 @@ sentence-transformers
 torch
 transformers
 
-google-genai==0.1.7
+google-genai>=1.57.0
 python-dotenv
 
 pdfplumber

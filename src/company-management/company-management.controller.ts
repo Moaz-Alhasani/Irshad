@@ -75,38 +75,38 @@ export class CompanyManagementController {
     return this.companyManagementService.updateCompany(id, updateDto, logoPath);
   }
 
-@Post('company-login')
-async LoginCompany(
-  @Body() companylogindto: LoginCompanyDto,
-  @Req() req: Request,
-  @Res({ passthrough: true }) res: Response,
-) {
-  const fingerprint = generateFingerprint(req);
+// @Post('company-login')
+// async LoginCompany(
+//   @Body() companylogindto: LoginCompanyDto,
+//   @Req() req: Request,
+//   @Res({ passthrough: true }) res: Response,
+// ) {
+//   const fingerprint = generateFingerprint(req);
 
-  const { company, accessToken, refreshToken } =
-    await this.companyManagementService.LoginComapny(companylogindto, fingerprint);
+//   const { company, accessToken, refreshToken } =
+//     await this.companyManagementService.LoginComapny(companylogindto, fingerprint);
 
-  res.cookie('accessToken', accessToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    maxAge: 1000 * 60 * 15 * 8 * 100,
-  });
+//   res.cookie('accessToken', accessToken, {
+//     httpOnly: true,
+//     secure: true,
+//     sameSite: 'none',
+//     maxAge: 1000 * 60 * 15 * 8 * 100,
+//   });
 
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly: true,
-    secure: true,
-    sameSite: 'none',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-  });
+//   res.cookie('refreshToken', refreshToken, {
+//     httpOnly: true,
+//     secure: true,
+//     sameSite: 'none',
+//     maxAge: 7 * 24 * 60 * 60 * 1000,
+//   });
 
-  return {
-    company,
-    message: 'Login successful',
-  };
-}
+//   return {
+//     company,
+//     message: 'Login successful',
+//   };
+// }
 
-  @Get(':id/jobs')
+  @Get(':id/jobs') // get jobs for compant
   @UseGuards(JwtAuthGuard)
   async getJobsByCompany(@Param('id') companyId: number) {
     return this.companyManagementService.getCompanyJobs(companyId);

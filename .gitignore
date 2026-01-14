@@ -2,9 +2,9 @@
 /dist
 /node_modules
 /build
-/Ai project
-/Ai project/app.py
-/Ai project/embeddings.py
+# /Ai project
+# /Ai project/app.py
+# /Ai project/embeddings.py
 # Logs
 logs
 *.log

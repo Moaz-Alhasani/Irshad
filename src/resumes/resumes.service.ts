@@ -9,6 +9,10 @@ import { UserEntity } from 'src/user/entities/user.entity';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Inject } from '@nestjs/common';
+import * as fs from 'fs';
+import FormData from 'form-data'; 
+
+
 
 interface ParserOutput {
   summary?: string;
@@ -43,20 +47,109 @@ export class ResumesService {
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
   ) {}
 
-async sendToFlaskAndSave(filePath: string, userId: number) {
-  try {
+// async sendToFlaskAndSave(filePath: string, userId: number) {
+//   try {
 
-     const existingResume = await this.resumeRepo.findOne({
+//      const existingResume = await this.resumeRepo.findOne({
+//         where: { user: { id: userId } },
+//       });
+
+//       if (existingResume) {
+//         if (existsSync(filePath)) unlinkSync(filePath);
+//           throw new ForbiddenException(
+//             'You have already uploaded a resume.',
+//           );
+//       }
+//     console.log('Sending to Flask...', { filePath, userId });
+
+//     const flaskResponse = await axios.post<FlaskResponse>(
+//       'https://irshad-ai.onrender.com/analyze', 
+//       { file_path: filePath },
+//       { timeout: 30000 } 
+//     );
+
+//     console.log('Flask response status:', flaskResponse.status);
+//     console.log('Flask response data:', JSON.stringify(flaskResponse.data, null, 2));
+
+//     const data = flaskResponse.data;
+//     const parser = data.parser_output || {};
+
+//     console.log(' Parsed data:', {
+//       skills: parser.skills,
+//       education: parser.education,
+//       certifications: parser.certifications,
+//       languages: parser.languages,
+//       location: parser.location,
+//       experience_years: parser.experience_years,
+//       phone: data.phone,
+//       email: data.email
+//     });
+
+//     const resumeData = {
+//       file_path: filePath,
+//       summary: parser.summary || '',
+//       extracted_skills: parser.skills || [],
+//       education: this.formatEducation(parser.education),
+//       certifications: parser.certifications || [],
+//       languages: parser.languages?.length ? parser.languages : ['Arabic'],
+//       experience_years: this.parseExperience(parser.experience_years || data.estimated_experience_years),
+//       phone: data.phone || null,
+//       university: parser.education?.university || null,
+//       location: parser.location || null,
+//       user: { id: userId } as any,
+//     };
+
+//     console.log('Saving resume data:', resumeData);
+
+//     const resume = this.resumeRepo.create(resumeData as DeepPartial<ResumeEntity>);
+//     const savedResume = await this.resumeRepo.save(resume);
+    
+//     console.log('Saved Resume:', savedResume);
+//     return savedResume;
+//   }catch (err: any) {
+//   console.error('Error sending to Flask:', err.message);
+
+//   if (err.response) {
+//     const status = err.response.status;
+//     const data = err.response.data;
+
+//     console.error(' Flask response error:', data);
+
+//     throw new HttpException(
+//       {
+//         analysis_status: data.analysis_status || 'failed',
+//         error_code: data.error_code || 'FLASK_ERROR',
+//         message: data.message || 'Error returned from CV analyzer'
+//       },
+//       status
+//     );
+//   }
+
+
+//   throw new InternalServerErrorException(
+//     'Internal server error while analyzing CV'
+//   );
+// }
+// }
+
+
+async sendToFlaskAndSave(filePath: string, userId: number) {
+    try {
+      // تحقق من السيرة السابقة
+      const existingResume = await this.resumeRepo.findOne({
         where: { user: { id: userId } },
       });
 
       if (existingResume) {
-        if (existsSync(filePath)) unlinkSync(filePath);
-          throw new ForbiddenException(
-            'You have already uploaded a resume.',
-          );
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        throw new ForbiddenException('You have already uploaded a resume.');
       }
-    console.log('Sending to Flask...', { filePath, userId });
+
+      console.log('Sending file to Flask...', { filePath, userId });
+
+      // إرسال الملف عبر multipart/form-data
+      const formData = new FormData();
+      formData.append('file', fs.createReadStream(filePath));
 
     const flaskResponse = await axios.post<FlaskResponse>(
       'https://irshad-ai.onrender.com/analyze', 
@@ -64,70 +157,64 @@ async sendToFlaskAndSave(filePath: string, userId: number) {
       { timeout: 30000 } 
     );
 
-    console.log('Flask response status:', flaskResponse.status);
-    console.log('Flask response data:', JSON.stringify(flaskResponse.data, null, 2));
+      const data: FlaskResponse = flaskResponse.data;
+      const parser = data.parser_output || {};
 
-    const data = flaskResponse.data;
-    const parser = data.parser_output || {};
+      console.log('Parsed data:', {
+        skills: parser.skills,
+        education: parser.education,
+        certifications: parser.certifications,
+        languages: parser.languages,
+        location: parser.location,
+        experience_years: parser.experience_years,
+        phone: data.phone,
+        email: data.email
+      });
 
-    console.log(' Parsed data:', {
-      skills: parser.skills,
-      education: parser.education,
-      certifications: parser.certifications,
-      languages: parser.languages,
-      location: parser.location,
-      experience_years: parser.experience_years,
-      phone: data.phone,
-      email: data.email
-    });
+      const resumeData = {
+        file_path: filePath,
+        summary: parser.summary || '',
+        extracted_skills: parser.skills || [],
+        education: this.formatEducation(parser.education),
+        certifications: parser.certifications || [],
+        languages: parser.languages?.length ? parser.languages : ['Arabic'],
+        experience_years: this.parseExperience(parser.experience_years || data.estimated_experience_years),
+        phone: data.phone || null,
+        university: parser.education?.university || null,
+        location: parser.location || null,
+        user: { id: userId } as any,
+      };
 
-    const resumeData = {
-      file_path: filePath,
-      summary: parser.summary || '',
-      extracted_skills: parser.skills || [],
-      education: this.formatEducation(parser.education),
-      certifications: parser.certifications || [],
-      languages: parser.languages?.length ? parser.languages : ['Arabic'],
-      experience_years: this.parseExperience(parser.experience_years || data.estimated_experience_years),
-      phone: data.phone || null,
-      university: parser.education?.university || null,
-      location: parser.location || null,
-      user: { id: userId } as any,
-    };
+      console.log('Saving resume data:', resumeData);
 
-    console.log('Saving resume data:', resumeData);
+      const resume = this.resumeRepo.create(resumeData as DeepPartial<ResumeEntity>);
+      const savedResume = await this.resumeRepo.save(resume);
 
-    const resume = this.resumeRepo.create(resumeData as DeepPartial<ResumeEntity>);
-    const savedResume = await this.resumeRepo.save(resume);
-    
-    console.log('Saved Resume:', savedResume);
-    return savedResume;
-  }catch (err: any) {
-  console.error('Error sending to Flask:', err.message);
+      console.log('Saved Resume:', savedResume);
+      return savedResume;
 
-  if (err.response) {
-    const status = err.response.status;
-    const data = err.response.data;
+    } catch (err: any) {
+      console.error('Error sending to Flask:', err.message);
 
-    console.error(' Flask response error:', data);
+      if (err.response) {
+        const status = err.response.status;
+        const data = err.response.data;
 
-    throw new HttpException(
-      {
-        analysis_status: data.analysis_status || 'failed',
-        error_code: data.error_code || 'FLASK_ERROR',
-        message: data.message || 'Error returned from CV analyzer'
-      },
-      status
-    );
+        console.error('Flask response error:', data);
+
+        throw new HttpException(
+          {
+            analysis_status: data.analysis_status || 'failed',
+            error_code: data.error_code || 'FLASK_ERROR',
+            message: data.message || 'Error returned from CV analyzer'
+          },
+          status
+        );
+      }
+
+      throw new InternalServerErrorException('Internal server error while analyzing CV');
+    }
   }
-
-
-  throw new InternalServerErrorException(
-    'Internal server error while analyzing CV'
-  );
-}
-
-}
 
 private formatEducation(education: any): string[] {
   console.log('Formatting education:', education);

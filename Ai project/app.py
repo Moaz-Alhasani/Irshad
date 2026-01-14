@@ -30,26 +30,100 @@ embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 
 
+# @app.route("/analyze", methods=["POST"])
+# def analyze():
+#     try:
+#         data = request.get_json(silent=True)
+
+#         if not data:
+#             return jsonify({
+#                 "analysis_status": "failed",
+#                 "error_code": "NO_INPUT_DATA",
+#                 "message": "No input data provided"
+#             }), 400
+
+#         file_path = data.get("file_path")
+#         if not file_path:
+#             return jsonify({
+#                 "analysis_status": "failed",
+#                 "error_code": "MISSING_FILE_PATH",
+#                 "message": "CV file path is missing"
+#             }), 400
+
+#         result = analyze_resume_with_gemini(file_path)
+
+#         if result.get("error") == "NOT_A_CV":
+#             return jsonify({
+#                 "analysis_status": "failed",
+#                 "error_code": "NOT_A_CV",
+#                 "message": result.get("message", "Uploaded file is not a CV")
+#             }), 422
+
+#         parser_output = result.get("parser_output", {})
+
+#         skills = parser_output.get("skills", [])
+#         education = parser_output.get("education", {})
+#         experience_years = parser_output.get("experience_years", 0)
+
+
+#         if not skills or not education or experience_years == 0:
+#             return jsonify({
+#                 "analysis_status": "failed",
+#                 "error_code": "INCOMPLETE_CV",
+#                 "message": "CV is missing required information"
+#             }), 422
+
+#         return jsonify({
+#             "analysis_status": "complete",
+#             "parser_output": {
+#                 "summary": parser_output.get("summary", ""),
+#                 "skills": skills,
+#                 "education": {
+#                     "degree": education.get("degree", ""),
+#                     "university": education.get("university", ""),
+#                     "major": education.get("major", "")
+#                 },
+#                 "certifications": parser_output.get("certifications", []),
+#                 "languages": parser_output.get("languages", ["Arabic"]),
+#                 "location": parser_output.get("location", ""),
+#                 "experience_years": experience_years
+#             },
+#             "email": result.get("email"),
+#             "phone": result.get("phone"),
+#             "estimated_experience_years": result.get(
+#                 "estimated_experience_years",
+#                 experience_years
+#             )
+#         }), 200
+
+#     except Exception as e:
+#         print(f"Error in analyze route: {str(e)}")
+#         return jsonify({
+#             "analysis_status": "failed",
+#             "error_code": "INTERNAL_SERVER_ERROR",
+#             "message": str(e)
+#         }), 500
+
+
 @app.route("/analyze", methods=["POST"])
 def analyze():
     try:
-        data = request.get_json(silent=True)
-
-        if not data:
+        file = request.files.get('file')
+        if not file:
             return jsonify({
                 "analysis_status": "failed",
-                "error_code": "NO_INPUT_DATA",
-                "message": "No input data provided"
+                "error_code": "NO_FILE",
+                "message": "No file uploaded"
             }), 400
 
-        file_path = data.get("file_path")
-        if not file_path:
-            return jsonify({
-                "analysis_status": "failed",
-                "error_code": "MISSING_FILE_PATH",
-                "message": "CV file path is missing"
-            }), 400
+        # حفظ الملف مؤقتاً
+        import os
+        upload_dir = "/tmp/uploads"
+        os.makedirs(upload_dir, exist_ok=True)
+        file_path = os.path.join(upload_dir, file.filename)
+        file.save(file_path)
 
+        # تحليل السيرة
         result = analyze_resume_with_gemini(file_path)
 
         if result.get("error") == "NOT_A_CV":
@@ -60,11 +134,9 @@ def analyze():
             }), 422
 
         parser_output = result.get("parser_output", {})
-
         skills = parser_output.get("skills", [])
         education = parser_output.get("education", {})
         experience_years = parser_output.get("experience_years", 0)
-
 
         if not skills or not education or experience_years == 0:
             return jsonify({
@@ -90,10 +162,7 @@ def analyze():
             },
             "email": result.get("email"),
             "phone": result.get("phone"),
-            "estimated_experience_years": result.get(
-                "estimated_experience_years",
-                experience_years
-            )
+            "estimated_experience_years": result.get("estimated_experience_years", experience_years)
         }), 200
 
     except Exception as e:
@@ -103,6 +172,7 @@ def analyze():
             "error_code": "INTERNAL_SERVER_ERROR",
             "message": str(e)
         }), 500
+
 
     
 

@@ -92,8 +92,13 @@ async applyToJob(jobId: number,currentUser: any,createJobApplyDto: CreateJobAppl
     job_description: job.description || '',
   };
 
+  // const acceptanceResp = await axios.post<AcceptanceResponse>(
+  //   'http://localhost:5000/predict-acceptance',
+  //   acceptancePayload,
+  // );
+
   const acceptanceResp = await axios.post<AcceptanceResponse>(
-    'http://localhost:5000/predict-acceptance',
+    'https://irshad-ai.onrender.com/predict-acceptance',
     acceptancePayload,
   );
 
@@ -112,8 +117,13 @@ async applyToJob(jobId: number,currentUser: any,createJobApplyDto: CreateJobAppl
     job_required_experience: job.requiredExperience || 0,
   };
 
+  // const salaryResp = await axios.post<SalaryResponse>(
+  //   'http://localhost:5000/predict-salary',
+  //   salaryPayload,
+  // );
+
   const salaryResp = await axios.post<SalaryResponse>(
-    'http://localhost:5000/predict-salary',
+    'https://irshad-ai.onrender.com/predict-salary',
     salaryPayload,
   );
 

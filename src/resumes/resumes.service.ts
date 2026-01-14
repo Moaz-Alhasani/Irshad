@@ -59,7 +59,7 @@ async sendToFlaskAndSave(filePath: string, userId: number) {
     console.log('Sending to Flask...', { filePath, userId });
 
     const flaskResponse = await axios.post<FlaskResponse>(
-      'http://localhost:5000/analyze', 
+      'https://irshad-ai.onrender.com/analyze', 
       { file_path: filePath },
       { timeout: 30000 } 
     );

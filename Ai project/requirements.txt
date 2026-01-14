@@ -5,14 +5,14 @@ numpy
 pandas
 scikit-learn
 joblib
-
+scipy
 
 sentence-transformers
 torch
 transformers
 
-scipy
-
 google-generativeai
-
 python-dotenv
+
+pdfplumber
+python-docx

@@ -55,7 +55,7 @@ import * as redisStore from 'cache-manager';
           OptionEntity,
           JobExamAttempt,
         ],
-        synchronize: false,
+        synchronize: true,
         ssl: {
           rejectUnauthorized: false,
         },

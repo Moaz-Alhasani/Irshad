@@ -105,27 +105,114 @@ embedder = SentenceTransformer("all-MiniLM-L6-v2")
 #         }), 500
 
 
+
+#معاذ
+# @app.route("/analyze", methods=["POST"])
+# def analyze():
+#     try:
+#         file = request.files.get('file')
+#         if not file:
+#             return jsonify({
+#                 "analysis_status": "failed",
+#                 "error_code": "NO_FILE",
+#                 "message": "No file uploaded"
+#             }), 400
+
+#         # حفظ الملف مؤقتاً
+#         import os
+#         upload_dir = "/tmp/uploads"
+#         os.makedirs(upload_dir, exist_ok=True)
+#         file_path = os.path.join(upload_dir, file.filename)
+#         file.save(file_path)
+
+#         # تحليل السيرة
+#         result = analyze_resume_with_gemini(file_path)
+
+#         if result.get("error") == "NOT_A_CV":
+#             return jsonify({
+#                 "analysis_status": "failed",
+#                 "error_code": "NOT_A_CV",
+#                 "message": result.get("message", "Uploaded file is not a CV")
+#             }), 422
+
+#         parser_output = result.get("parser_output", {})
+#         skills = parser_output.get("skills", [])
+#         education = parser_output.get("education", {})
+#         experience_years = parser_output.get("experience_years", 0)
+
+#         if not skills or not education or experience_years == 0:
+#             return jsonify({
+#                 "analysis_status": "failed",
+#                 "error_code": "INCOMPLETE_CV",
+#                 "message": "CV is missing required information"
+#             }), 422
+
+#         return jsonify({
+#             "analysis_status": "complete",
+#             "parser_output": {
+#                 "summary": parser_output.get("summary", ""),
+#                 "skills": skills,
+#                 "education": {
+#                     "degree": education.get("degree", ""),
+#                     "university": education.get("university", ""),
+#                     "major": education.get("major", "")
+#                 },
+#                 "certifications": parser_output.get("certifications", []),
+#                 "languages": parser_output.get("languages", ["Arabic"]),
+#                 "location": parser_output.get("location", ""),
+#                 "experience_years": experience_years
+#             },
+#             "email": result.get("email"),
+#             "phone": result.get("phone"),
+#             "estimated_experience_years": result.get("estimated_experience_years", experience_years)
+#         }), 200
+
+#     except Exception as e:
+#         print(f"Error in analyze route: {str(e)}")
+#         return jsonify({
+#             "analysis_status": "failed",
+#             "error_code": "INTERNAL_SERVER_ERROR",
+#             "message": str(e)
+#         }), 500
+
+
+    
 @app.route("/analyze", methods=["POST"])
 def analyze():
     try:
-        file = request.files.get('file')
-        if not file:
+        # 1. استقبال الملف من الطلب
+        if 'file' not in request.files:
             return jsonify({
                 "analysis_status": "failed",
                 "error_code": "NO_FILE",
-                "message": "No file uploaded"
+                "message": "No file part in the request"
             }), 400
+        
+        file = request.files['file']
+        
+        if file.filename == '':
+            return jsonify({"message": "No selected file"}), 400
 
-        # حفظ الملف مؤقتاً
-        import os
+        # 2. حفظ الملف مؤقتاً
         upload_dir = "/tmp/uploads"
         os.makedirs(upload_dir, exist_ok=True)
         file_path = os.path.join(upload_dir, file.filename)
+        
+        # حفظ الملف
         file.save(file_path)
+        
+        # سطر التأكيد الذي طلبته لرؤيته في Logs الخاصة بـ Render
+        print(f"✅ File successfully saved at: {os.path.abspath(file_path)}")
 
-        # تحليل السيرة
+        # 3. استدعاء دالة تحليل الذكاء الاصطناعي
         result = analyze_resume_with_gemini(file_path)
 
+        # 4. مسح الملف المؤقت فوراً بعد التحليل لتوفير المساحة
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            print(f"🗑️ Temporary file removed: {file_path}")
+
+        # 5. معالجة الأخطاء المنطقية
         if result.get("error") == "NOT_A_CV":
             return jsonify({
                 "analysis_status": "failed",
@@ -134,39 +221,26 @@ def analyze():
             }), 422
 
         parser_output = result.get("parser_output", {})
-        skills = parser_output.get("skills", [])
-        education = parser_output.get("education", {})
-        experience_years = parser_output.get("experience_years", 0)
-
-        if not skills or not education or experience_years == 0:
-            return jsonify({
-                "analysis_status": "failed",
-                "error_code": "INCOMPLETE_CV",
-                "message": "CV is missing required information"
-            }), 422
-
+        
+        # 6. إرجاع النتيجة النهائية
         return jsonify({
             "analysis_status": "complete",
             "parser_output": {
                 "summary": parser_output.get("summary", ""),
-                "skills": skills,
-                "education": {
-                    "degree": education.get("degree", ""),
-                    "university": education.get("university", ""),
-                    "major": education.get("major", "")
-                },
+                "skills": parser_output.get("skills", []),
+                "education": parser_output.get("education", {}),
                 "certifications": parser_output.get("certifications", []),
                 "languages": parser_output.get("languages", ["Arabic"]),
                 "location": parser_output.get("location", ""),
-                "experience_years": experience_years
+                "experience_years": parser_output.get("experience_years", 0)
             },
             "email": result.get("email"),
             "phone": result.get("phone"),
-            "estimated_experience_years": result.get("estimated_experience_years", experience_years)
+            "estimated_experience_years": result.get("estimated_experience_years", 0)
         }), 200
 
     except Exception as e:
-        print(f"Error in analyze route: {str(e)}")
+        print(f"❌ CRITICAL ERROR: {str(e)}")
         return jsonify({
             "analysis_status": "failed",
             "error_code": "INTERNAL_SERVER_ERROR",
@@ -174,7 +248,6 @@ def analyze():
         }), 500
 
 
-    
 
 # modelembe = SentenceTransformer(r'D:\multi-qa-mpnet-base-dot-v1')
 # modelembe = SentenceTransformer(r'F:\model\multi-qa-mpnet-base-dot-v1')

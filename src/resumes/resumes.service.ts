@@ -132,10 +132,93 @@ export class ResumesService {
 // }
 // }
 
+//moaz
+// async sendToFlaskAndSave(filePath: string, userId: number) {
+//     try {
+//       // تحقق من السيرة السابقة
+//       const existingResume = await this.resumeRepo.findOne({
+//         where: { user: { id: userId } },
+//       });
 
-async sendToFlaskAndSave(filePath: string, userId: number) {
+//       if (existingResume) {
+//         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+//         throw new ForbiddenException('You have already uploaded a resume.');
+//       }
+
+//       console.log('Sending file to Flask...', { filePath, userId });
+
+//       // إرسال الملف عبر multipart/form-data
+//       const formData = new FormData();
+//       formData.append('file', fs.createReadStream(filePath));
+
+//     const flaskResponse = await axios.post<FlaskResponse>(
+//       'https://irshad-ai.onrender.com/analyze', 
+//       { file_path: filePath },
+//       { timeout: 30000 } 
+//     );
+
+//       const data: FlaskResponse = flaskResponse.data;
+//       const parser = data.parser_output || {};
+
+//       console.log('Parsed data:', {
+//         skills: parser.skills,
+//         education: parser.education,
+//         certifications: parser.certifications,
+//         languages: parser.languages,
+//         location: parser.location,
+//         experience_years: parser.experience_years,
+//         phone: data.phone,
+//         email: data.email
+//       });
+
+//       const resumeData = {
+//         file_path: filePath,
+//         summary: parser.summary || '',
+//         extracted_skills: parser.skills || [],
+//         education: this.formatEducation(parser.education),
+//         certifications: parser.certifications || [],
+//         languages: parser.languages?.length ? parser.languages : ['Arabic'],
+//         experience_years: this.parseExperience(parser.experience_years || data.estimated_experience_years),
+//         phone: data.phone || null,
+//         university: parser.education?.university || null,
+//         location: parser.location || null,
+//         user: { id: userId } as any,
+//       };
+
+//       console.log('Saving resume data:', resumeData);
+
+//       const resume = this.resumeRepo.create(resumeData as DeepPartial<ResumeEntity>);
+//       const savedResume = await this.resumeRepo.save(resume);
+
+//       console.log('Saved Resume:', savedResume);
+//       return savedResume;
+
+//     } catch (err: any) {
+//       console.error('Error sending to Flask:', err.message);
+
+//       if (err.response) {
+//         const status = err.response.status;
+//         const data = err.response.data;
+
+//         console.error('Flask response error:', data);
+
+//         throw new HttpException(
+//           {
+//             analysis_status: data.analysis_status || 'failed',
+//             error_code: data.error_code || 'FLASK_ERROR',
+//             message: data.message || 'Error returned from CV analyzer'
+//           },
+//           status
+//         );
+//       }
+
+//       throw new InternalServerErrorException('Internal server error while analyzing CV');
+//     }
+//   }
+
+  async sendToFlaskAndSave(filePath: string, userId: number) {
     try {
-      // تحقق من السيرة السابقة
+      // 1. التحقق من وجود سيرة سابقة
       const existingResume = await this.resumeRepo.findOne({
         where: { user: { id: userId } },
       });
@@ -145,32 +228,29 @@ async sendToFlaskAndSave(filePath: string, userId: number) {
         throw new ForbiddenException('You have already uploaded a resume.');
       }
 
-      console.log('Sending file to Flask...', { filePath, userId });
+      console.log('Preparing to send file to Flask...', { filePath, userId });
 
-      // إرسال الملف عبر multipart/form-data
+      // 2. إنشاء FormData وإرفاق الملف الحقيقي
       const formData = new FormData();
+      // 'file' هو الاسم الذي ينتظره Flask في request.files
       formData.append('file', fs.createReadStream(filePath));
 
-    const flaskResponse = await axios.post<FlaskResponse>(
-      'https://irshad-ai.onrender.com/analyze', 
-      { file_path: filePath },
-      { timeout: 30000 } 
-    );
+      // 3. إرسال الطلب إلى Flask
+      const flaskResponse = await axios.post(
+        'https://irshad-ai.onrender.com/analyze',
+        formData,
+        {
+          headers: {
+            ...formData.getHeaders(), // ضروري جداً لتعريف نوع المحتوى والـ Boundary
+          },
+          timeout: 90000, // زيادة الوقت لـ 90 ثانية لأن الـ AI قد يستغرق وقتاً
+        }
+      );
 
-      const data: FlaskResponse = flaskResponse.data;
+      const data = flaskResponse.data;
       const parser = data.parser_output || {};
 
-      console.log('Parsed data:', {
-        skills: parser.skills,
-        education: parser.education,
-        certifications: parser.certifications,
-        languages: parser.languages,
-        location: parser.location,
-        experience_years: parser.experience_years,
-        phone: data.phone,
-        email: data.email
-      });
-
+      // 4. تجهيز البيانات للحفظ في قاعدة البيانات
       const resumeData = {
         file_path: filePath,
         summary: parser.summary || '',
@@ -185,36 +265,26 @@ async sendToFlaskAndSave(filePath: string, userId: number) {
         user: { id: userId } as any,
       };
 
-      console.log('Saving resume data:', resumeData);
-
       const resume = this.resumeRepo.create(resumeData as DeepPartial<ResumeEntity>);
-      const savedResume = await this.resumeRepo.save(resume);
-
-      console.log('Saved Resume:', savedResume);
-      return savedResume;
+      return await this.resumeRepo.save(resume);
 
     } catch (err: any) {
-      console.error('Error sending to Flask:', err.message);
-
+      console.error('Error in Service:', err.message);
+      
       if (err.response) {
-        const status = err.response.status;
-        const data = err.response.data;
-
-        console.error('Flask response error:', data);
-
         throw new HttpException(
           {
-            analysis_status: data.analysis_status || 'failed',
-            error_code: data.error_code || 'FLASK_ERROR',
-            message: data.message || 'Error returned from CV analyzer'
+            analysis_status: 'failed',
+            message: err.response.data?.message || 'Flask Server Error',
           },
-          status
+          err.response.status
         );
       }
-
-      throw new InternalServerErrorException('Internal server error while analyzing CV');
+      throw new InternalServerErrorException('Connection to AI service failed');
     }
   }
+
+
 
 private formatEducation(education: any): string[] {
   console.log('Formatting education:', education);

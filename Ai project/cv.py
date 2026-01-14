@@ -175,14 +175,15 @@ from datetime import datetime
 from docx import Document
 
 
-import google.genai as genai  
+from google import genai  
 
-# تحميل متغيرات البيئة
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
     raise ValueError("GEMINI_API_KEY not found in .env file")
-genai.configure(api_key=api_key)
+
+# إنشاء Client بدل genai.configure
+client = genai.Client(api_key=api_key)
 
 # =========================
 # استخراج النص من الملف
@@ -300,7 +301,7 @@ Rules:
 """
 
     try:
-        model = genai.Models.get("models/gemini-2.5-flash")
+        model = client.get_model("models/gemini-2.5-flash")
         response = model.predict(prompt)
         raw_output = response.output_text.strip()
 

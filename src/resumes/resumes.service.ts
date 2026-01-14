@@ -236,7 +236,7 @@ export class ResumesService {
       formData.append('file', fs.createReadStream(filePath));
 
       // 3. إرسال الطلب إلى Flask
-      const flaskResponse = await axios.post(
+      const flaskResponse = await axios.post<FlaskResponse>(
         'https://irshad-ai.onrender.com/analyze',
         formData,
         {

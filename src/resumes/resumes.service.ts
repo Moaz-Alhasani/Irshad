@@ -234,7 +234,8 @@ export class ResumesService {
       const formData = new FormData();
       // 'file' هو الاسم الذي ينتظره Flask في request.files
       formData.append('file', fs.createReadStream(filePath));
-
+      console.log(formData);
+      
       // 3. إرسال الطلب إلى Flask
       const flaskResponse = await axios.post<FlaskResponse>(
         'https://irshad-ai.onrender.com/analyze',
@@ -246,7 +247,8 @@ export class ResumesService {
           timeout:140000, // زيادة الوقت لـ 90 ثانية لأن الـ AI قد يستغرق وقتاً
         }
       );
-
+      console.log("aftet",flaskResponse);
+      
       const data = flaskResponse.data;
       const parser = data.parser_output || {};
 

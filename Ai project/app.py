@@ -179,6 +179,7 @@ embedder = SentenceTransformer("all-MiniLM-L6-v2")
     
 @app.route("/analyze", methods=["POST"])
 def analyze():
+    print("arrived")
     try:
         # 1. استقبال الملف من الطلب
         if 'file' not in request.files:

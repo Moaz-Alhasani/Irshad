@@ -200,8 +200,15 @@ def analyze():
         file_path = os.path.join(upload_dir, file.filename)
         
         # حفظ الملف
-        file.save(file_path)
-        
+        # file.save(file_path)
+        # بدلاً من file.save(file_path)
+        with open(file_path, 'wb') as f:
+            chunk_size = 4096
+            while True:
+                chunk = file.read(chunk_size)
+                if not chunk:
+                    break
+                f.write(chunk)
         # سطر التأكيد الذي طلبته لرؤيته في Logs الخاصة بـ Render
         print(f"✅ File successfully saved at: {os.path.abspath(file_path)}")
 

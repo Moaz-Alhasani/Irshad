@@ -236,6 +236,12 @@ export class ResumesService {
       formData.append('file', fs.createReadStream(filePath));
       console.log("before",formData);
       
+      if (!fs.existsSync(filePath)) {
+  console.error("❌ File does not exist at path:", filePath);
+} else {
+  const stats = fs.statSync(filePath);
+  console.log(`✅ File found, size: ${stats.size} bytes`);
+}
       // 3. إرسال الطلب إلى Flask
       const flaskResponse = await axios.post<FlaskResponse>(
         'https://irshad-ai.onrender.com/analyze',

@@ -1,32 +1,32 @@
 from flask import Flask, request, jsonify
 from cv import analyze_resume_with_gemini
-from embeddings import compute_embedding
-from sklearn.metrics.pairwise import cosine_similarity
-from sentence_transformers import CrossEncoder, SentenceTransformer,util
-from embeddings import compute_embedding
-import numpy as np
-import joblib
-import math
+# from embeddings import compute_embedding
+# from sklearn.metrics.pairwise import cosine_similarity
+# from sentence_transformers import CrossEncoder, SentenceTransformer,util
+# from embeddings import compute_embedding
+# import numpy as np
+# import joblib
+# import math
 import os
-import json
-import torch
-import pandas as pd
+# import json
+# import torch
+# import pandas as pd
 app = Flask(__name__)
+import sys
 
 
+# BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
+# MODEL_DIR = os.path.join(BASE_DIR, "modelSalary")
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))  
-MODEL_DIR = os.path.join(BASE_DIR, "modelSalary")
+# model = joblib.load(os.path.join(MODEL_DIR, 'salary_predictor.pkl'))
+# edu_importance = joblib.load(os.path.join(MODEL_DIR,'edu_importance.pkl'))
+# job_importance = joblib.load(os.path.join(MODEL_DIR,'job_importance.pkl'))
+# scaler_X = joblib.load(os.path.join(MODEL_DIR, 'scaler_X.pkl'))
+# scaler_y = joblib.load(os.path.join(MODEL_DIR, 'scaler_y.pkl'))
+# # embedder = SentenceTransformer(r'D:\all-mpnet-base-v2')
+# # embedder = SentenceTransformer(r'F:\model\all-mpnet-base-v2')
 
-model = joblib.load(os.path.join(MODEL_DIR, 'salary_predictor.pkl'))
-edu_importance = joblib.load(os.path.join(MODEL_DIR,'edu_importance.pkl'))
-job_importance = joblib.load(os.path.join(MODEL_DIR,'job_importance.pkl'))
-scaler_X = joblib.load(os.path.join(MODEL_DIR, 'scaler_X.pkl'))
-scaler_y = joblib.load(os.path.join(MODEL_DIR, 'scaler_y.pkl'))
-# embedder = SentenceTransformer(r'D:\all-mpnet-base-v2')
-# embedder = SentenceTransformer(r'F:\model\all-mpnet-base-v2')
-
-embedder = SentenceTransformer("all-MiniLM-L6-v2")
+# embedder = SentenceTransformer("all-MiniLM-L6-v2")
 
 
 
@@ -179,7 +179,7 @@ embedder = SentenceTransformer("all-MiniLM-L6-v2")
     
 @app.route("/analyze", methods=["POST"])
 def analyze():
-    print("arrived")
+    print("arrived"); sys.stdout.flush()
     try:
         # 1. استقبال الملف من الطلب
         if 'file' not in request.files:

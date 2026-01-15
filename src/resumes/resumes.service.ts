@@ -234,7 +234,7 @@ export class ResumesService {
       const formData = new FormData();
       // 'file' هو الاسم الذي ينتظره Flask في request.files
       formData.append('file', fs.createReadStream(filePath));
-      console.log(formData);
+      console.log("before",formData);
       
       // 3. إرسال الطلب إلى Flask
       const flaskResponse = await axios.post<FlaskResponse>(
@@ -244,7 +244,7 @@ export class ResumesService {
           headers: {
             ...formData.getHeaders(), // ضروري جداً لتعريف نوع المحتوى والـ Boundary
           },
-          timeout:140000, // زيادة الوقت لـ 90 ثانية لأن الـ AI قد يستغرق وقتاً
+          timeout:400000, // زيادة الوقت لـ 90 ثانية لأن الـ AI قد يستغرق وقتاً
         }
       );
       console.log("aftet",flaskResponse);

@@ -41,7 +41,7 @@ app.use(
 
   // ✅ تفعيل CORS للسماح للواجهة الأمامية بالوصول
   app.enableCors({
-    origin: ["http://localhost:3001","http://localhost:5173"], // أو استخدم مصفوفة للسماح بعدة مصادر
+    origin: ["http://localhost:3001","http://localhost:5173","https://irshad-dashboard.onrender.com"], // أو استخدم مصفوفة للسماح بعدة مصادر
     credentials: true, // للسماح بإرسال الكوكيز
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization','Accept'],

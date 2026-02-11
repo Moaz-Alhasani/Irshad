@@ -132,8 +132,8 @@ This project is an advanced **Irshad Smart Job Recommendation System** combined 
 ## 💻 Tech Stack
 
 - **Backend:** Node.js, NestJS, TypeORM, PostgreSQL
-- **Frontend:** React.js / Angular (if applicable)
-- **AI & NLP:** Transformers, Sentence Embeddings, XGBoost
+- **Frontend:** React.js 
+- **AI & NLP:** Transformers, Sentence Embeddings, RandomForest
 - **Authentication:** JWT, Role-based Access Control
 - **Deployment:** Docker / Cloud Hosting (Optional)
 
